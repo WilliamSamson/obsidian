@@ -1,0 +1,253 @@
+use std::{cell::RefCell, rc::Rc};
+
+use gtk::{
+    gdk,
+    prelude::*,
+    Box as GtkBox, Button, GestureDrag, Label, Notebook, Orientation,
+};
+
+use super::{ops, super::tab::TabView};
+
+const DRAG_THRESHOLD: f64 = 8.0;
+
+/// Lightweight active-tab update: just toggles CSS classes without rebuilding widgets.
+pub(super) fn update_active_tab(container: &GtkBox, notebook: &Notebook) {
+    let current = current_index(notebook);
+    let mut index = 0usize;
+    let mut child = container.first_child();
+    while let Some(widget) = child {
+        let is_active = index == current;
+
+        if is_active {
+            widget.add_css_class("active");
+        } else {
+            widget.remove_css_class("active");
+        }
+
+        update_children_active(&widget, is_active);
+
+        index += 1;
+        child = widget.next_sibling();
+    }
+}
+
+/// Recursively update active classes on tab button labels and close buttons.
+fn update_children_active(widget: &gtk::Widget, is_active: bool) {
+    if widget.has_css_class("obsidian-tab-button-label")
+        || widget.has_css_class("obsidian-tab-select-button")
+        || widget.has_css_class("obsidian-tab-button")
+        || widget.has_css_class("obsidian-tab-close-button")
+    {
+        if is_active {
+            widget.add_css_class("active");
+        } else {
+            widget.remove_css_class("active");
+        }
+    }
+
+    let mut child = widget.first_child();
+    while let Some(c) = child {
+        update_children_active(&c, is_active);
+        child = c.next_sibling();
+    }
+}
+
+/// Full rebuild of the tab strip. Used only when tabs are added or removed.
+pub(super) fn rebuild_tab_strip(
+    container: &GtkBox,
+    notebook: &Notebook,
+    tabs: &Rc<RefCell<Vec<TabView>>>,
+) {
+    clear_children(container);
+
+    let current = current_index(notebook);
+    let tab_count = tabs.borrow().len();
+
+    for (index, tab) in tabs.borrow().iter().enumerate() {
+        let is_active = index == current;
+
+        let tab_root = GtkBox::new(Orientation::Horizontal, 8);
+        tab_root.add_css_class("obsidian-tab-item");
+        if is_active {
+            tab_root.add_css_class("active");
+        }
+
+        let title = tab.title_label().text();
+        let label = Label::new(Some(&title));
+        label.add_css_class("obsidian-tab-label");
+        label.add_css_class("obsidian-tab-button-label");
+        if is_active {
+            label.add_css_class("active");
+        }
+
+        let select_button = Button::builder()
+            .icon_name("go-next-symbolic")
+            .css_classes(["obsidian-tab-select-button"])
+            .tooltip_text(if is_active {
+                "Current tab"
+            } else {
+                "Switch to this tab"
+            })
+            .focus_on_click(false)
+            .build();
+        select_button.set_sensitive(!is_active);
+        if is_active {
+            select_button.add_css_class("active");
+        }
+
+        let notebook_switch = notebook.clone();
+        select_button.connect_clicked(move |_| {
+            notebook_switch.set_current_page(Some(index as u32));
+        });
+
+        label.set_hexpand(true);
+        tab_root.append(&label);
+        tab_root.append(&select_button);
+
+        if tab_count > 1 {
+            let close_button = Button::builder()
+                .icon_name("window-close-symbolic")
+                .css_classes(["obsidian-tab-close-button"])
+                .focus_on_click(false)
+                .build();
+            if is_active {
+                close_button.add_css_class("active");
+            }
+
+            let notebook_close = notebook.clone();
+            let tabs_close = tabs.clone();
+            let container_close = container.clone();
+            let tab_root_widget = tab.root().clone();
+            close_button.connect_clicked(move |_| {
+                if let Some(page) = notebook_close.page_num(&tab_root_widget) {
+                    let index = page as usize;
+                    let _ = ops::close_tab_at(&tabs_close, &notebook_close, index);
+                    rebuild_tab_strip(&container_close, &notebook_close, &tabs_close);
+                }
+            });
+            tab_root.append(&close_button);
+        }
+
+        attach_drag(&tab_root, index, tabs, notebook, container);
+
+        container.append(&tab_root);
+    }
+}
+
+fn attach_drag(
+    tab_root: &GtkBox,
+    index: usize,
+    tabs: &Rc<RefCell<Vec<TabView>>>,
+    notebook: &Notebook,
+    container: &GtkBox,
+) {
+    let gesture = GestureDrag::new();
+    gesture.set_button(gdk::BUTTON_PRIMARY);
+
+    // During drag: add visual feedback once past threshold
+    {
+        let tab_widget = tab_root.clone();
+        let container_ref = container.clone();
+        gesture.connect_drag_update(move |_gesture, offset_x, _offset_y| {
+            if offset_x.abs() > DRAG_THRESHOLD {
+                tab_widget.add_css_class("dragging");
+                highlight_drop_target(&container_ref, &tab_widget, offset_x);
+            }
+        });
+    }
+
+    // On drag end: decide click vs reorder
+    {
+        let tab_widget = tab_root.clone();
+        let container_ref = container.clone();
+        let tabs_ref = tabs.clone();
+        let notebook_ref = notebook.clone();
+        gesture.connect_drag_end(move |_gesture, offset_x, offset_y| {
+            let was_dragging = tab_widget.has_css_class("dragging");
+            tab_widget.remove_css_class("dragging");
+            clear_drop_indicators(&container_ref);
+
+            let distance = (offset_x * offset_x + offset_y * offset_y).sqrt();
+            if distance >= DRAG_THRESHOLD && was_dragging {
+                // Drag: find target and reorder
+                if let Some(target) = find_target_index(&container_ref, &tab_widget, offset_x) {
+                    if target != index {
+                        ops::reorder_tab(&tabs_ref, &notebook_ref, index, target);
+                        rebuild_tab_strip(&container_ref, &notebook_ref, &tabs_ref);
+                        notebook_ref.set_current_page(Some(target as u32));
+                    }
+                }
+            }
+        });
+    }
+
+    tab_root.add_controller(gesture);
+}
+
+/// Highlight the tab under the drag cursor with `drop-target` CSS class.
+fn highlight_drop_target(container: &GtkBox, source_widget: &GtkBox, offset_x: f64) {
+    let source_alloc = source_widget.allocation();
+    let cursor_x = source_alloc.x() as f64 + source_alloc.width() as f64 / 2.0 + offset_x;
+
+    let mut child = container.first_child();
+    while let Some(widget) = child {
+        let alloc = widget.allocation();
+        let left = alloc.x() as f64;
+        let right = left + alloc.width() as f64;
+        let is_source = widget.eq(source_widget.upcast_ref::<gtk::Widget>());
+
+        if !is_source && cursor_x >= left && cursor_x < right {
+            widget.add_css_class("drop-target");
+        } else {
+            widget.remove_css_class("drop-target");
+        }
+
+        child = widget.next_sibling();
+    }
+}
+
+/// Find which tab index the cursor is over based on drag offset.
+fn find_target_index(container: &GtkBox, source_widget: &GtkBox, offset_x: f64) -> Option<usize> {
+    let source_alloc = source_widget.allocation();
+    let cursor_x = source_alloc.x() as f64 + source_alloc.width() as f64 / 2.0 + offset_x;
+
+    let mut child_idx = 0usize;
+    let mut child = container.first_child();
+    while let Some(widget) = child {
+        let alloc = widget.allocation();
+        let left = alloc.x() as f64;
+        let right = left + alloc.width() as f64;
+
+        if cursor_x >= left && cursor_x < right {
+            return Some(child_idx);
+        }
+
+        child_idx += 1;
+        child = widget.next_sibling();
+    }
+
+    // If cursor is past the last tab, target the last position
+    if child_idx > 0 {
+        Some(child_idx - 1)
+    } else {
+        None
+    }
+}
+
+fn clear_drop_indicators(container: &GtkBox) {
+    let mut child = container.first_child();
+    while let Some(widget) = child {
+        widget.remove_css_class("drop-target");
+        child = widget.next_sibling();
+    }
+}
+
+fn clear_children(container: &GtkBox) {
+    while let Some(child) = container.first_child() {
+        container.remove(&child);
+    }
+}
+
+fn current_index(notebook: &Notebook) -> usize {
+    notebook.current_page().map(|index| index as usize).unwrap_or(0)
+}

@@ -1,20 +1,25 @@
 use gtk::{gdk, pango::FontDescription};
-use vte4::{prelude::*, CursorBlinkMode, Terminal};
+use vte4::{prelude::*, CursorBlinkMode, CursorShape, Terminal};
+
+use super::profile::{profile, ProfileId};
 
 const SCROLLBACK_LINES: i64 = 20_000;
 
-pub(super) fn build_terminal() -> Terminal {
+pub(super) fn build_terminal(profile_id: ProfileId) -> Terminal {
     let terminal = Terminal::builder()
         .hexpand(true)
         .vexpand(true)
-        .can_focus(false)
-        .focus_on_click(false)
-        .focusable(false)
+        .can_focus(true)
+        .focus_on_click(true)
+        .focusable(true)
         .scrollback_lines(SCROLLBACK_LINES as u32)
+        .allow_hyperlink(true)
         .build();
     terminal.add_css_class("obsidian-terminal");
-    terminal.set_cursor_blink_mode(CursorBlinkMode::On);
+    terminal.set_cursor_blink_mode(CursorBlinkMode::Off);
+    terminal.set_cursor_shape(CursorShape::Ibeam);
     terminal.set_font(Some(&FontDescription::from_string("DejaVu Sans Mono 10")));
+    terminal.set_font_scale(profile(profile_id).font_scale);
     let palette = [
         rgba(0.00, 0.00, 0.00),
         rgba(1.00, 0.20, 0.20),

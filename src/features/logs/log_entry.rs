@@ -48,6 +48,10 @@ impl LogEntry {
         self.level
     }
 
+    pub(crate) fn level_label(&self) -> &'static str {
+        self.level.label()
+    }
+
     pub(crate) fn raw_line(&self) -> &str {
         &self.raw
     }

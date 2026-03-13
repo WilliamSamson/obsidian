@@ -1,8 +1,8 @@
-use gtk::{prelude::*, HeaderBar, Image, Label};
+use gtk::{prelude::*, Button, HeaderBar, Image, Label};
 
 use super::{APP_TITLE, HEADER_ICON_PATH};
 
-pub(super) fn build_header() -> HeaderBar {
+pub(super) fn build_header() -> (HeaderBar, Button) {
     let header = HeaderBar::new();
     header.add_css_class("obsidian-header");
     header.set_show_title_buttons(true);
@@ -17,5 +17,12 @@ pub(super) fn build_header() -> HeaderBar {
     title.add_css_class("obsidian-title");
     header.set_title_widget(Some(&title));
 
-    header
+    let settings_button = Button::builder()
+        .icon_name("emblem-system-symbolic")
+        .css_classes(["obsidian-header-settings"])
+        .tooltip_text("Settings")
+        .build();
+    header.pack_end(&settings_button);
+
+    (header, settings_button)
 }

@@ -1,19 +1,37 @@
-use std::{fs::File, io::{self, Write}, path::PathBuf};
+use std::{
+    fs::File,
+    io::{self, Write},
+    path::{Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use gtk::{gio, glib};
 use vte4::{prelude::*, PtyFlags, Terminal};
 
-pub(super) fn spawn_shell(terminal: &Terminal) {
+pub(super) struct ShellRuntime {
+    status_path: PathBuf,
+}
+
+impl ShellRuntime {
+    pub(super) fn status_path(&self) -> &Path {
+        &self.status_path
+    }
+}
+
+pub(super) fn spawn_shell(terminal: &Terminal, working_directory: Option<&str>) -> ShellRuntime {
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+    let status_path = status_path();
     let args = shell_args(&shell);
+    let env = shell_env(&status_path);
 
     let args_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let env_refs: Vec<&str> = env.iter().map(String::as_str).collect();
 
     terminal.spawn_async(
         PtyFlags::DEFAULT,
-        None,
+        working_directory,
         &args_refs,
-        &[],
+        &env_refs,
         glib::SpawnFlags::DEFAULT,
         || {},
         -1,
@@ -24,6 +42,33 @@ pub(super) fn spawn_shell(terminal: &Terminal) {
             }
         },
     );
+
+    ShellRuntime { status_path }
+}
+
+fn shell_env(status_path: &Path) -> Vec<String> {
+    let mut env = std::env::vars_os()
+        .map(|(key, value)| format!("{}={}", key.to_string_lossy(), value.to_string_lossy()))
+        .collect::<Vec<_>>();
+    set_env(&mut env, "TERM", "xterm-256color");
+    set_env(&mut env, "COLORTERM", "truecolor");
+    set_env(&mut env, "TERM_PROGRAM", "obsidian");
+    set_env(
+        &mut env,
+        "OBSIDIAN_STATUS_FILE",
+        &status_path.to_string_lossy(),
+    );
+    env
+}
+
+fn set_env(env: &mut Vec<String>, key: &str, value: &str) {
+    let needle = format!("{key}=");
+    if let Some(existing) = env.iter_mut().find(|item| item.starts_with(&needle)) {
+        *existing = format!("{key}={value}");
+        return;
+    }
+
+    env.push(format!("{key}={value}"));
 }
 
 fn shell_args(shell: &str) -> Vec<String> {
@@ -58,7 +103,22 @@ if [ -f ~/.bashrc ]; then
     source ~/.bashrc
 fi
 export PS1=""
-export PROMPT_COMMAND=""
+if [ -s /etc/profile.d/vte-2.91.sh ]; then
+    source /etc/profile.d/vte-2.91.sh
+fi
+__obsidian_status_update() {
+    local exit_code=$?
+    if [ -n "${OBSIDIAN_STATUS_FILE:-}" ]; then
+        printf "%s\n" "$exit_code" > "$OBSIDIAN_STATUS_FILE"
+    fi
+}
+if [[ "$(declare -p PROMPT_COMMAND 2>&1)" =~ "declare -a" ]]; then
+    PROMPT_COMMAND+=(__obsidian_status_update)
+elif [ -n "${PROMPT_COMMAND:-}" ]; then
+    PROMPT_COMMAND="__obsidian_status_update; ${PROMPT_COMMAND}"
+else
+    PROMPT_COMMAND="__obsidian_status_update"
+fi
 clear
 "#;
 
@@ -69,4 +129,21 @@ clear
 
 fn rc_path() -> PathBuf {
     std::env::temp_dir().join("obsidian_bashrc")
+}
+
+fn status_path() -> PathBuf {
+    let path = std::env::temp_dir().join(format!(
+        "obsidian_shell_status_{}_{}",
+        std::process::id(),
+        timestamp_nanos()
+    ));
+    let _ = std::fs::write(&path, "0\n");
+    path
+}
+
+fn timestamp_nanos() -> u128 {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(duration) => duration.as_nanos(),
+        Err(_) => 0,
+    }
 }

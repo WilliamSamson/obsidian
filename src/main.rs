@@ -1,6 +1,7 @@
 mod app;
 mod features;
 mod linux_terminal;
+mod logger;
 mod renderer;
 mod ui;
 mod window_state;
@@ -37,13 +38,20 @@ struct WindowChrome {
 }
 
 fn main() -> io::Result<()> {
+    logger::init();
+
     let args = parse_args()?;
 
     if args.input_path.is_none() {
+        logger::info("launching terminal mode", &[]);
         return linux_terminal::run();
     }
 
     let source = load_source(args.input_path)?;
+    logger::info("log source loaded", &[
+        ("source", &source.source_name),
+        ("entries", &source.entries.len().to_string()),
+    ]);
     let follower = source.follow_config.map(spawn_file_follower);
     let mut logs = LogsFeature::new(source.source_name, source.entries, follower);
     logs.apply_startup_filters(args.startup_filter.query, &args.startup_filter.levels);

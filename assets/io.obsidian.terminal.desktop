@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Obsidian
+Comment=GPU-accelerated terminal emulator
+Exec=obsidian
+Icon=io.obsidian.terminal
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;
+StartupWMClass=io.obsidian.terminal
+StartupNotify=true
