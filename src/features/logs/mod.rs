@@ -1,5 +1,6 @@
 mod cli;
 mod export;
+mod file_ops;
 mod filter_state;
 mod level_filters;
 mod log_entry;
@@ -11,6 +12,7 @@ pub(crate) mod viewer;
 pub(crate) mod watcher;
 
 pub(crate) use cli::parse_args;
+pub(crate) use file_ops::remove_line_at;
 pub(crate) use log_entry::LogEntry;
 pub(crate) use parser::load_source;
 pub(crate) use viewer::LogsFeature;

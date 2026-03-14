@@ -70,3 +70,7 @@ pub(super) fn settings_path() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."));
     base.join("obsidian").join("settings.json")
 }
+
+pub(super) fn settings_exist() -> bool {
+    settings_path().is_file()
+}

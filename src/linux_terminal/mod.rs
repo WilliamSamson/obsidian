@@ -5,9 +5,11 @@ mod meta;
 mod persist;
 mod profile;
 mod right_pane;
+mod runtime;
 mod session;
 mod settings;
 mod shell;
+mod setup;
 mod style;
 mod tab;
 mod terminal;
@@ -17,9 +19,8 @@ mod workspace;
 use std::io;
 
 use gtk::{
-    gdk, gio, glib, prelude::*, Align, Application, ApplicationWindow, Box as GtkBox,
-    GestureClick, IconTheme, Label, Orientation, PolicyType, Revealer,
-    RevealerTransitionType, ScrolledWindow, Stack, StackTransitionType,
+    gdk, gio, glib, prelude::*, Application, ApplicationWindow, Box as GtkBox, IconTheme,
+    Orientation, Stack, StackTransitionType,
 };
 use std::{cell::RefCell, rc::Rc};
 use winit::dpi::PhysicalSize;
@@ -53,6 +54,15 @@ pub(crate) fn run() -> io::Result<()> {
 fn build_window(app: &Application, width: u32, height: u32) {
     // Rc<RefCell<Settings>> shares the mutable runtime settings across settings UI and workspace callbacks on the GTK thread.
     let app_settings = Rc::new(RefCell::new(settings::load_settings()));
+    let needs_setup = !settings::settings_exist();
+    let initial_setup_step = if needs_setup {
+        let (checkpoint_settings, checkpoint_step) = setup::load_checkpoint(&app_settings.borrow());
+        *app_settings.borrow_mut() = checkpoint_settings;
+        checkpoint_step
+    } else {
+        setup::clear_checkpoint();
+        0
+    };
 
     if let Some(gtk_settings) = gtk::Settings::default() {
         gtk_settings.set_gtk_application_prefer_dark_theme(true);
@@ -80,6 +90,26 @@ fn build_window(app: &Application, width: u32, height: u32) {
     stack.set_transition_duration(200);
     stack.add_named(&container, Some("workspace"));
 
+    {
+        let stack_ref = stack.clone();
+        let settings_ref = app_settings.clone();
+        let workspace_ref = workspace.clone();
+        let setup_page = setup::build_setup_page(
+            &app_settings.borrow(),
+            initial_setup_step,
+            move |configured_settings| {
+                *settings_ref.borrow_mut() = configured_settings.clone();
+                style::install_css(configured_settings.app_font_size);
+                workspace_ref.apply_settings(&configured_settings);
+                let snapshot = settings_ref.borrow().clone();
+                settings::save_settings(&snapshot);
+                setup::clear_checkpoint();
+                stack_ref.set_visible_child_name("workspace");
+            },
+        );
+        stack.add_named(&setup_page, Some("setup"));
+    }
+
     let stack_ref = stack.clone();
     let workspace_ref = workspace.clone();
     let settings_page = settings::build_settings_page(
@@ -93,6 +123,15 @@ fn build_window(app: &Application, width: u32, height: u32) {
         },
     );
     stack.add_named(&settings_page, Some("settings"));
+    stack.set_visible_child_name(if needs_setup { "setup" } else { "workspace" });
+
+    settings_button.set_visible(!needs_setup);
+    {
+        let settings_button = settings_button.clone();
+        stack.connect_visible_child_name_notify(move |stack| {
+            settings_button.set_visible(stack.visible_child_name().as_deref() != Some("setup"));
+        });
+    }
 
     // Settings button toggles to settings view
     {
@@ -145,58 +184,10 @@ fn shell_container(
     view_row.set_vexpand(true);
     view_row.append(child);
 
-    let revealer = Revealer::builder()
-        .transition_type(RevealerTransitionType::SlideLeft)
-        .transition_duration(250)
-        .build();
-    revealer.set_hexpand(false);
-    revealer.set_vexpand(true);
-    revealer.set_halign(Align::End);
-    revealer.set_width_request(420);
-
-    let right_pane = right_pane::build_right_pane(settings);
-    let pane_frame = ScrolledWindow::new();
-    pane_frame.set_hexpand(false);
-    pane_frame.set_vexpand(true);
-    pane_frame.set_min_content_width(420);
-    pane_frame.set_max_content_width(420);
-    pane_frame.set_propagate_natural_width(false);
-    pane_frame.set_policy(PolicyType::Never, PolicyType::Never);
-    pane_frame.set_child(Some(&right_pane));
-
-    revealer.set_child(Some(&pane_frame));
-    revealer.set_reveal_child(logr_panel_open);
-
-    let handle = GtkBox::new(Orientation::Vertical, 0);
-    handle.add_css_class("obsidian-handle");
-    if !logr_panel_open {
-        handle.add_css_class("collapsed");
-    }
-    handle.set_vexpand(true);
-    handle.set_valign(Align::Fill);
-
-    let dot = Label::new(Some("·"));
-    dot.add_css_class("obsidian-handle-dot");
-    dot.set_valign(Align::Center);
-    dot.set_vexpand(true);
-    handle.append(&dot);
-
-    let gesture = GestureClick::new();
-    let revealer_ref = revealer.clone();
-    let handle_ref = handle.clone();
-    gesture.connect_released(move |_, _, _, _| {
-        let opening = !revealer_ref.reveals_child();
-        revealer_ref.set_reveal_child(opening);
-        if opening {
-            handle_ref.remove_css_class("collapsed");
-        } else {
-            handle_ref.add_css_class("collapsed");
-        }
-    });
-    handle.add_controller(gesture);
-
-    view_row.append(&handle);
-    view_row.append(&revealer);
+    let side_panes = right_pane::build_side_panes(settings, logr_panel_open);
+    view_row.append(&side_panes.handle);
+    view_row.append(&side_panes.logr_revealer);
+    view_row.append(&side_panes.web_revealer);
     container.append(&view_row);
 
     container

@@ -8,6 +8,8 @@ use std::{
 use gtk::{gio, glib};
 use vte4::{prelude::*, PtyFlags, Terminal};
 
+use super::runtime;
+
 pub(super) struct ShellRuntime {
     status_path: PathBuf,
 }
@@ -19,11 +21,7 @@ impl ShellRuntime {
 }
 
 pub(super) fn spawn_shell(terminal: &Terminal, working_directory: Option<&str>, shell_override: &str) -> ShellRuntime {
-    let shell = if shell_override.is_empty() {
-        std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string())
-    } else {
-        shell_override.to_string()
-    };
+    let shell = runtime::resolve_shell(shell_override);
     let status_path = status_path();
     let args = shell_args(&shell);
     let env = shell_env(&status_path);
@@ -60,12 +58,47 @@ fn shell_env(status_path: &Path) -> Vec<String> {
     set_env(&mut env, "TERM", "xterm-256color");
     set_env(&mut env, "COLORTERM", "truecolor");
     set_env(&mut env, "TERM_PROGRAM", "obsidian");
+    ensure_utf8_locale(&mut env);
     set_env(
         &mut env,
         "OBSIDIAN_STATUS_FILE",
         &status_path.to_string_lossy(),
     );
     env
+}
+
+fn ensure_utf8_locale(env: &mut Vec<String>) {
+    let preferred = current_utf8_locale().unwrap_or_else(|| "C.UTF-8".to_string());
+    for key in ["LANG", "LC_CTYPE", "LC_ALL"] {
+        let existing = find_env(env, key);
+        if existing.is_none_or(|value| !is_utf8_locale(value)) {
+            set_env(env, key, &preferred);
+        }
+    }
+}
+
+fn current_utf8_locale() -> Option<String> {
+    for key in ["LC_ALL", "LC_CTYPE", "LANG"] {
+        if let Ok(value) = std::env::var(key) {
+            if is_utf8_locale(&value) {
+                return Some(value);
+            }
+        }
+    }
+    None
+}
+
+fn find_env<'a>(env: &'a [String], key: &str) -> Option<&'a str> {
+    let needle = format!("{key}=");
+    env.iter()
+        .find(|item| item.starts_with(&needle))
+        .and_then(|item| item.split_once('='))
+        .map(|(_, value)| value)
+}
+
+fn is_utf8_locale(value: &str) -> bool {
+    let lowered = value.to_ascii_lowercase();
+    lowered.contains("utf-8") || lowered.contains("utf8")
 }
 
 fn set_env(env: &mut Vec<String>, key: &str, value: &str) {

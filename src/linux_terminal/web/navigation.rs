@@ -9,12 +9,15 @@ pub(super) fn bind_navigation(
     state: &Rc<WebPaneState>,
     reload_button: &Button,
     home_button: &Button,
+    zoom_out_button: &Button,
+    zoom_reset_button: &Button,
     go_button: &Button,
 ) {
     bind_address(state, go_button);
     bind_history_buttons(state);
     bind_reload(state, reload_button);
     bind_home(state, home_button);
+    bind_zoom(state, zoom_out_button, zoom_reset_button);
     bind_load_events(state);
 
     let state_ref = state.clone();
@@ -68,13 +71,29 @@ fn bind_home(state: &Rc<WebPaneState>, home_button: &Button) {
     });
 }
 
+fn bind_zoom(state: &Rc<WebPaneState>, zoom_out_button: &Button, zoom_reset_button: &Button) {
+    let zoom_out_state = state.clone();
+    zoom_out_button.connect_clicked(move |_| {
+        let next = (zoom_out_state.web_view.zoom_level() - 0.10).max(0.50);
+        zoom_out_state.web_view.set_zoom_level(next);
+        zoom_out_state
+            .status
+            .set_text(&format!("zoom {}%", (next * 100.0).round() as i32));
+    });
+
+    let zoom_reset_state = state.clone();
+    zoom_reset_button.connect_clicked(move |_| {
+        zoom_reset_state.web_view.set_zoom_level(1.0);
+        zoom_reset_state.status.set_text("zoom 100%");
+    });
+}
+
 fn bind_load_events(state: &Rc<WebPaneState>) {
     let web_view = state.web_view.clone();
     let load_state = state.clone();
     // Rc clone is required because WebKit emits load updates asynchronously after this setup returns.
     web_view.connect_load_changed(move |web_view, event| {
         let uri = web_view.uri().map(|uri| uri.to_string()).unwrap_or_default();
-        let current_title = page_title(web_view, &uri);
 
         if !uri.is_empty() {
             load_state.address.set_text(&uri);
@@ -83,15 +102,10 @@ fn bind_load_events(state: &Rc<WebPaneState>) {
         let status_text = match event {
             LoadEvent::Started => format!("loading {}", compact_uri(&uri)),
             LoadEvent::Committed => format!("connected {}", compact_uri(&uri)),
-            LoadEvent::Finished => current_title.clone(),
+            LoadEvent::Finished => "ready".to_string(),
             _ => load_state.status.text().to_string(),
         };
 
-        load_state.title.set_text(if current_title.trim().is_empty() {
-            "browser"
-        } else {
-            &current_title
-        });
         load_state.status.set_text(&status_text);
         sync_nav_buttons(&load_state);
     });
@@ -100,7 +114,6 @@ fn bind_load_events(state: &Rc<WebPaneState>) {
     let failure_state = state.clone();
     // Rc clone is required because load failure callbacks fire independently of the setup scope.
     failure_view.connect_load_failed(move |_web_view, _event, uri, error| {
-        failure_state.title.set_text("browser");
         failure_state
             .status
             .set_text(&format!("failed {} · {}", compact_uri(uri), error.message()));
@@ -126,14 +139,6 @@ fn sync_nav_buttons(state: &WebPaneState) {
     state
         .forward_button
         .set_sensitive(state.web_view.can_go_forward());
-}
-
-fn page_title(web_view: &webkit6::WebView, uri: &str) -> String {
-    web_view
-        .title()
-        .map(|title| title.to_string())
-        .filter(|title| !title.trim().is_empty())
-        .unwrap_or_else(|| compact_uri(uri))
 }
 
 fn compact_uri(uri: &str) -> String {

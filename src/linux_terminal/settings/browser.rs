@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use gtk::{prelude::*, Box as GtkBox};
 
 use super::{
-    sections::preview_settings,
+    save_settings,
     widgets::{dropdown_row, section_label},
     Settings,
 };
@@ -31,6 +31,8 @@ pub(super) fn build_browser_section(
             _ => "google",
         };
         browser_settings.borrow_mut().default_browser = browser.to_string();
-        preview_settings(&browser_settings, &browser_apply);
+        let snapshot = browser_settings.borrow().clone();
+        save_settings(&snapshot);
+        browser_apply(&snapshot);
     });
 }

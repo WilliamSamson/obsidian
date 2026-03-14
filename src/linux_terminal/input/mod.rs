@@ -91,6 +91,14 @@ pub(super) fn append_input_row(
     entry
 }
 
+pub(super) fn handle_terminal_clipboard_shortcuts(
+    terminal: &Terminal,
+    key: gdk::Key,
+    modifiers: gdk::ModifierType,
+) -> bool {
+    history::handle_terminal_clipboard_shortcuts(terminal, key, modifiers)
+}
+
 fn tool_button(icon_name: &str) -> Button {
     Button::builder()
         .icon_name(icon_name)
@@ -202,7 +210,11 @@ fn wire_focus_tracking(input_container: &GtkBox, entry: &Entry, terminal: &Termi
     let terminal_keys = EventControllerKey::new();
     {
         let entry_ref = entry.clone();
-        terminal_keys.connect_key_pressed(move |_, key, _, _| {
+        let terminal_ref = terminal.clone();
+        terminal_keys.connect_key_pressed(move |_, key, _, modifiers| {
+            if history::handle_terminal_clipboard_shortcuts(&terminal_ref, key, modifiers) {
+                return gtk::glib::Propagation::Stop;
+            }
             if key == gdk::Key::Escape {
                 let _ = entry_ref.grab_focus();
                 return gtk::glib::Propagation::Stop;

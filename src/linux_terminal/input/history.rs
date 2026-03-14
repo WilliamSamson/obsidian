@@ -21,6 +21,10 @@ pub(super) fn handle_clipboard_shortcuts(
     key: gdk::Key,
     modifiers: gdk::ModifierType,
 ) -> bool {
+    if handle_terminal_clipboard_shortcuts(terminal, key, modifiers) {
+        return true;
+    }
+
     let ctrl = modifiers.contains(gdk::ModifierType::CONTROL_MASK);
     let shift = modifiers.contains(gdk::ModifierType::SHIFT_MASK);
     let alt = modifiers.contains(gdk::ModifierType::ALT_MASK);
@@ -50,6 +54,41 @@ pub(super) fn handle_clipboard_shortcuts(
             }
             return true;
         }
+    }
+
+    false
+}
+
+pub(super) fn handle_terminal_clipboard_shortcuts(
+    terminal: &Terminal,
+    key: gdk::Key,
+    modifiers: gdk::ModifierType,
+) -> bool {
+    let ctrl = modifiers.contains(gdk::ModifierType::CONTROL_MASK);
+    let shift = modifiers.contains(gdk::ModifierType::SHIFT_MASK);
+    let alt = modifiers.contains(gdk::ModifierType::ALT_MASK);
+
+    if ctrl && shift && !alt {
+        return match key.to_unicode() {
+            Some('c') | Some('C') if terminal.has_selection() => {
+                terminal.copy_clipboard_format(Format::Text);
+                true
+            }
+            Some('v') | Some('V') => {
+                terminal.paste_clipboard();
+                true
+            }
+            Some('a') | Some('A') => {
+                terminal.select_all();
+                true
+            }
+            _ => false,
+        };
+    }
+
+    if shift && !ctrl && !alt && key == gdk::Key::Insert {
+        terminal.paste_clipboard();
+        return true;
     }
 
     false

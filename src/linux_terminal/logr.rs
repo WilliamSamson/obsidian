@@ -136,6 +136,14 @@ pub(super) fn build_logr_pane() -> GtkBox {
     let state = Rc::new(RefCell::new(PaneState::default()));
     let discovered = Rc::new(RefCell::new(Vec::<PathBuf>::new()));
     let selected_path: Rc<RefCell<Option<PathBuf>>> = Rc::new(RefCell::new(None));
+    let view = LogrView {
+        list: list.clone(),
+        count_label: count_label.clone(),
+        status: status.clone(),
+        state: state.clone(),
+        selected_path: selected_path.clone(),
+        filter_entry: filter_entry.clone(),
+    };
 
     // Initial scan
     populate_popover_list(&popover_list, &discovered);
@@ -176,27 +184,15 @@ pub(super) fn build_logr_pane() -> GtkBox {
 
     // Play button: load + start following
     {
-        let list = list.clone();
-        let count_label = count_label.clone();
-        let status = status.clone();
-        let state = state.clone();
-        let filter_entry = filter_entry.clone();
-        let selected_path = selected_path.clone();
+        let view = view.clone();
         let play_btn = play_button.clone();
         let stop_button = stop_button.clone();
         let stream_label = stream_label.clone();
         play_button.connect_clicked(move |_| {
             let play_button = &play_btn;
-            let path = selected_path.borrow().clone();
+            let path = view.selected_path.borrow().clone();
             if let Some(path) = path {
-                load_file(
-                    &path,
-                    &list,
-                    &count_label,
-                    &status,
-                    &state,
-                    &filter_entry,
-                );
+                load_file(&path, &view);
                 play_button.set_visible(false);
                 play_button.set_sensitive(false);
                 stop_button.set_visible(true);
@@ -234,18 +230,15 @@ pub(super) fn build_logr_pane() -> GtkBox {
 
     // Filter changed
     {
-        let list = list.clone();
-        let count_label = count_label.clone();
-        let status = status.clone();
-        let state = state.clone();
+        let view = view.clone();
         filter_entry.connect_changed(move |entry| {
-            state.borrow_mut().query = entry.text().to_string();
-            refresh_view(&list, &count_label, &status, &state.borrow());
+            view.state.borrow_mut().query = entry.text().to_string();
+            refresh_view(&view);
         });
     }
 
     // Live follower poll
-    watch_follower(&list, &count_label, &status, &state);
+    watch_follower(&view);
 
     root
 }
@@ -256,6 +249,16 @@ struct PaneState {
     follower: Option<Receiver<LogEntry>>,
     query: String,
     last_status: String,
+}
+
+#[derive(Clone)]
+struct LogrView {
+    list: ListBox,
+    count_label: Label,
+    status: Label,
+    state: Rc<RefCell<PaneState>>,
+    selected_path: Rc<RefCell<Option<PathBuf>>>,
+    filter_entry: Entry,
 }
 
 // --- File discovery ---
@@ -324,14 +327,7 @@ fn is_log_file(path: &Path) -> bool {
 
 // --- Load ---
 
-fn load_file(
-    path: &Path,
-    list: &ListBox,
-    count_label: &Label,
-    status: &Label,
-    state: &Rc<RefCell<PaneState>>,
-    filter_entry: &Entry,
-) {
+fn load_file(path: &Path, view: &LogrView) {
     let path_str = path.display().to_string();
     logger::info("logr: loading file", &[("path", &path_str)]);
     match load_source(Some(path_str.clone())) {
@@ -343,38 +339,30 @@ fn load_file(
                 ("entries", &loaded.to_string()),
                 ("mode", mode),
             ]);
-            let query = filter_entry.text().to_string();
-            *state.borrow_mut() = PaneState {
+            let query = view.filter_entry.text().to_string();
+            *view.state.borrow_mut() = PaneState {
                 entries: source.entries,
                 follower,
                 query,
                 last_status: format!("{loaded} entries ({mode})"),
             };
-            refresh_view(list, count_label, status, &state.borrow());
+            refresh_view(view);
         }
         Err(error) => {
             logger::error("logr: file load failed", &[("error", &error.to_string())]);
-            state.borrow_mut().last_status = format!("error: {error}");
-            refresh_view(list, count_label, status, &state.borrow());
+            view.state.borrow_mut().last_status = format!("error: {error}");
+            refresh_view(view);
         }
     }
 }
 
 // --- Live follower ---
 
-fn watch_follower(
-    list: &ListBox,
-    count_label: &Label,
-    status: &Label,
-    state: &Rc<RefCell<PaneState>>,
-) {
-    let list = list.clone();
-    let count_label = count_label.clone();
-    let status = status.clone();
-    let state = state.clone();
+fn watch_follower(view: &LogrView) {
+    let view = view.clone();
     glib::timeout_add_local(Duration::from_millis(250), move || {
-        if drain_followed_entries(&state) {
-            refresh_view(&list, &count_label, &status, &state.borrow());
+        if drain_followed_entries(&view.state) {
+            refresh_view(&view);
         }
         glib::ControlFlow::Continue
     });
@@ -414,8 +402,10 @@ fn drain_followed_entries(state: &Rc<RefCell<PaneState>>) -> bool {
 
 // --- View rendering ---
 
-fn refresh_view(list: &ListBox, count_label: &Label, status: &Label, state: &PaneState) {
-    clear_list(list);
+fn refresh_view(view: &LogrView) {
+    clear_list(&view.list);
+
+    let state = view.state.borrow();
 
     let filtered: Vec<&LogEntry> = state
         .entries
@@ -426,9 +416,9 @@ fn refresh_view(list: &ListBox, count_label: &Label, status: &Label, state: &Pan
     let total = state.entries.len();
     let start = shown.saturating_sub(MAX_VISIBLE_ENTRIES);
 
-    count_label.set_text(&format!("{shown}/{total}"));
+    view.count_label.set_text(&format!("{shown}/{total}"));
 
-    status.set_text(if state.last_status.is_empty() {
+    view.status.set_text(if state.last_status.is_empty() {
         "idle"
     } else {
         &state.last_status
@@ -443,21 +433,28 @@ fn refresh_view(list: &ListBox, count_label: &Label, status: &Label, state: &Pan
         let lbl = Label::new(Some(msg));
         lbl.add_css_class("obsidian-logr-empty");
         lbl.set_xalign(0.0);
-        list.append(&lbl);
+        view.list.append(&lbl);
         return;
     }
 
     for entry in filtered.into_iter().skip(start) {
-        list.append(&entry_row(entry));
+        view.list.append(&entry_row(entry, view));
     }
 }
 
-fn entry_row(entry: &LogEntry) -> GtkBox {
-    let row = GtkBox::new(Orientation::Horizontal, 6);
+fn entry_row(entry: &LogEntry, view: &LogrView) -> GtkBox {
+    let container = GtkBox::new(Orientation::Vertical, 0);
+    container.add_css_class("obsidian-log-entry-container");
+
+    let row = GtkBox::new(Orientation::Horizontal, 8);
     row.add_css_class("obsidian-log-entry");
 
     let level = entry.level_label().to_lowercase();
     row.add_css_class(&format!("log-{level}"));
+
+    // Line Number
+    let line_num = Label::new(Some(&format!("{:>4}", entry.line_number())));
+    line_num.add_css_class("obsidian-log-line-number");
 
     let badge = Label::new(Some(&level.chars().next().unwrap_or('?').to_uppercase().to_string()));
     badge.add_css_class("log-level-dot");
@@ -468,9 +465,108 @@ fn entry_row(entry: &LogEntry) -> GtkBox {
     body.set_hexpand(true);
     body.add_css_class("log-body");
 
+    let copy_btn = Button::builder()
+        .icon_name("edit-copy-symbolic")
+        .css_classes(["obsidian-log-copy-btn"])
+        .tooltip_text("Copy log line")
+        .build();
+
+    let delete_btn = Button::builder()
+        .icon_name("edit-delete-symbolic")
+        .css_classes(["obsidian-log-delete-btn"])
+        .tooltip_text("Delete log line")
+        .build();
+
+    let raw_content = entry.raw_line().to_string();
+    let line_num_val = entry.line_number();
+
+    // Copy logic
+    {
+        let copy_btn_ref = copy_btn.clone();
+        copy_btn.connect_clicked(move |_| {
+            let display = gtk::gdk::Display::default().expect("GTK display not found");
+            display.clipboard().set_text(&raw_content);
+            logger::info("logr: line copied to clipboard", &[("length", &raw_content.len().to_string())]);
+            
+            copy_btn_ref.set_icon_name("emblem-ok-symbolic");
+            let btn = copy_btn_ref.clone();
+            glib::timeout_add_local(Duration::from_millis(1200), move || {
+                btn.set_icon_name("edit-copy-symbolic");
+                glib::ControlFlow::Break
+            });
+        });
+    }
+
+    // Delete logic - requires state access for removal
+    {
+        let view_for_delete = view.clone();
+
+        delete_btn.connect_clicked(move |_| {
+            let path_opt = view_for_delete.selected_path.borrow().clone();
+            if let Some(path) = path_opt {
+                match crate::features::logs::remove_line_at(&path, line_num_val) {
+                    Ok(_) => {
+                        logger::info("logr: line deleted from file", &[("line", &line_num_val.to_string())]);
+                        
+                        // Reload file to sync line numbers and state
+                        load_file(&path, &view_for_delete);
+                        
+                        // Update status message
+                        view_for_delete
+                            .status
+                            .set_text(&format!("line {line_num_val} deleted"));
+                    }
+                    Err(e) => {
+                        logger::error("logr: delete failed", &[("error", &e.to_string())]);
+                    }
+                }
+            }
+        });
+    }
+
+    row.append(&line_num);
     row.append(&badge);
     row.append(&body);
-    row
+    row.append(&copy_btn);
+    row.append(&delete_btn);
+
+    // Expansion Details
+    let details_revealer = gtk::Revealer::builder()
+        .transition_type(gtk::RevealerTransitionType::SlideDown)
+        .transition_duration(200)
+        .build();
+    
+    let details_label = Label::new(Some(entry.raw_line()));
+    details_label.add_css_class("obsidian-log-details");
+    details_label.set_selectable(true);
+    details_label.set_wrap(true);
+    details_label.set_wrap_mode(gtk::pango::WrapMode::WordChar); // Aggressive wrapping
+    details_label.set_xalign(0.0);
+    details_label.set_margin_start(42); // Tightened for 420px panel
+    details_label.set_margin_end(16);
+    details_label.set_margin_bottom(8);
+    
+    details_revealer.set_child(Some(&details_label));
+    
+    container.append(&row);
+    container.append(&details_revealer);
+
+    // Toggle expansion on row click (but not on button or label selection)
+    let gesture = gtk::GestureClick::new();
+    let revealer_ref = details_revealer.clone();
+    let row_ref = row.clone();
+    gesture.connect_released(move |_, _, _, _| {
+        let active = !revealer_ref.reveals_child();
+        revealer_ref.set_reveal_child(active);
+        if active {
+            row_ref.add_css_class("expanded");
+        } else {
+            row_ref.remove_css_class("expanded");
+        }
+    });
+    row.add_controller(gesture);
+
+    container
 }
 
 fn clear_list(list: &ListBox) {

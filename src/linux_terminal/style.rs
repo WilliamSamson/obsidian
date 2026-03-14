@@ -142,68 +142,74 @@ pub(super) fn install_css(app_font_size: u32) {
             margin: 0;
         }}
 
-        .obsidian-sidepane-switcher {{
-            margin-bottom: 10px;
-        }}
-
-        button.obsidian-sidepane-button {{
-            background: transparent;
-            color: {text_primary};
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 999px;
-            padding: 4px 10px;
-            min-height: 24px;
-            box-shadow: none;
-            font-family: \"DejaVu Sans Mono\", monospace;
-            font-size: {font_10};
-            font-weight: 700;
-            text-transform: lowercase;
-            opacity: 0.46;
-            transition: opacity 140ms ease, border-color 140ms ease, background 140ms ease;
-        }}
-
-        button.obsidian-sidepane-button:hover {{
-            opacity: 0.88;
-            border-color: rgba(255, 255, 255, 0.14);
-        }}
-
-        button.obsidian-sidepane-button.active {{
-            opacity: 1.0;
-            border-color: rgba(255, 77, 77, 0.26);
-            background: rgba(255, 77, 77, 0.07);
-            color: {accent};
-        }}
-
-        .obsidian-sidepane-stack {{
-            background: transparent;
-        }}
-
         .obsidian-handle {{
-            min-width: 12px;
-            margin: 0 2px;
-            padding: 0;
-            border-radius: 4px;
-            transition: background 140ms ease;
+            min-width: 30px;
+            margin: 0 3px;
+            padding: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.015);
+            transition: border-color 180ms ease, background 180ms ease, opacity 180ms ease;
         }}
 
         .obsidian-handle:hover {{
-            background: rgba(255, 255, 255, 0.04);
+            background: rgba(255, 255, 255, 0.025);
+            border-color: rgba(255, 255, 255, 0.08);
         }}
 
-        .obsidian-handle-dot {{
+        .obsidian-handle.collapsed {{
+            background: rgba(255, 255, 255, 0.01);
+        }}
+
+        .obsidian-handle.collapsed:hover {{
+            background: rgba(255, 77, 77, 0.05);
+            border-color: rgba(255, 77, 77, 0.18);
+        }}
+
+        button.obsidian-handle-segment {{
+            background: transparent;
             color: {text_primary};
-            font-size: {font_22};
-            opacity: 0.15;
-            transition: opacity 140ms ease, color 140ms ease;
+            border: none;
+            border-radius: 9px;
+            min-width: 24px;
+            min-height: 32px;
+            padding: 0;
+            box-shadow: none;
+            opacity: 0.34;
+            transition: opacity 180ms ease, background 180ms ease, color 180ms ease;
         }}
 
-        .obsidian-handle:hover .obsidian-handle-dot {{
-            opacity: 0.6;
+        button.obsidian-handle-segment:hover {{
+            opacity: 0.86;
+            background: rgba(255, 255, 255, 0.035);
+        }}
+
+        button.obsidian-handle-segment.active {{
+            opacity: 1.0;
+            background: rgba(255, 77, 77, 0.08);
+        }}
+
+        .obsidian-handle-icon {{
+            color: {text_primary};
+            -gtk-icon-size: 14px;
+            opacity: inherit;
+            transition: opacity 180ms ease, color 180ms ease;
+        }}
+
+        .obsidian-handle.collapsed button.obsidian-handle-segment {{
+            opacity: 0.28;
+        }}
+
+        .obsidian-handle.collapsed:hover button.obsidian-handle-segment {{
+            opacity: 0.72;
+            background: rgba(255, 77, 77, 0.035);
+        }}
+
+        .obsidian-handle.collapsed:hover .obsidian-handle-icon {{
             color: {accent};
         }}
 
-        .obsidian-handle.collapsed .obsidian-handle-dot {{
-            opacity: 0.4;
+        button.obsidian-handle-segment.active .obsidian-handle-icon {{
             color: {accent};
         }}
 
@@ -540,21 +546,6 @@ pub(super) fn install_css(app_font_size: u32) {
             padding: 6px 4px 0 4px;
         }}
 
-        .obsidian-web-header {{
-            padding: 2px 2px 8px 2px;
-            margin-bottom: 0;
-        }}
-
-        .obsidian-web-title {{
-            color: {text_primary};
-            font-family: \"DejaVu Sans Mono\", monospace;
-            font-size: {font_12};
-            font-weight: 700;
-            opacity: 0.88;
-            text-transform: lowercase;
-            letter-spacing: 0.05em;
-        }}
-
         .obsidian-web-controls {{
             margin-bottom: 8px;
         }}
@@ -601,6 +592,14 @@ pub(super) fn install_css(app_font_size: u32) {
 
         button.obsidian-web-button:disabled {{
             opacity: 0.18;
+        }}
+
+        button.obsidian-web-text-button {{
+            min-width: 42px;
+            padding: 4px 8px;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            font-weight: 700;
         }}
 
         entry.obsidian-web-entry {{
@@ -809,16 +808,49 @@ pub(super) fn install_css(app_font_size: u32) {
         }}
 
         .obsidian-log-entry {{
-            padding: 3px 4px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            transition: background 100ms ease;
+            padding: 3px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.015);
+            transition: background 160ms ease, padding 160ms ease;
         }}
 
         .obsidian-log-entry:hover {{
             background: rgba(255, 255, 255, 0.03);
         }}
 
-        .log-level-dot {{
+        .obsidian-log-entry.expanded {{
+            background: rgba(255, 255, 255, 0.025);
+            border-bottom-color: transparent;
+            padding-top: 6px;
+            transition: background 240ms cubic-bezier(0.4, 0, 0.2, 1);
+        }}
+
+        .obsidian-log-line-number {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            opacity: 0.15;
+            min-width: 28px;
+            margin-right: 2px;
+            text-align: right;
+        }}
+
+        .obsidian-log-entry:hover .obsidian-log-line-number {{
+            opacity: 0.35;
+        }}
+
+        .obsidian-log-details {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            opacity: 0.6;
+            line-height: 1.4;
+            background: rgba(0, 0, 0, 0.12);
+            padding: 6px 10px;
+            border-radius: 4px;
+            /* Container containment */
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+        }}
             font-family: \"DejaVu Sans Mono\", monospace;
             font-size: {font_9};
             font-weight: 700;
@@ -833,6 +865,51 @@ pub(super) fn install_css(app_font_size: u32) {
             font-size: {font_10};
             color: {text_primary};
             opacity: 0.7;
+        }}
+
+        button.obsidian-log-copy-btn {{
+            background: transparent;
+            color: {text_primary};
+            border: none;
+            border-radius: 4px;
+            padding: 2px;
+            min-height: 22px;
+            min-width: 22px;
+            opacity: 0;
+            transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1), background 140ms ease;
+            box-shadow: none;
+        }}
+
+        .obsidian-log-entry:hover button.obsidian-log-copy-btn {{
+            opacity: 0.45;
+        }}
+
+        button.obsidian-log-copy-btn:hover {{
+            opacity: 1.0 !important;
+            background: rgba(255, 255, 255, 0.08);
+        }}
+
+        button.obsidian-log-delete-btn {{
+            background: transparent;
+            color: {text_primary};
+            border: none;
+            border-radius: 4px;
+            padding: 2px;
+            min-height: 22px;
+            min-width: 22px;
+            opacity: 0;
+            transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1), background 140ms ease;
+            box-shadow: none;
+        }}
+
+        .obsidian-log-entry:hover button.obsidian-log-delete-btn {{
+            opacity: 0.35;
+        }}
+
+        button.obsidian-log-delete-btn:hover {{
+            opacity: 1.0 !important;
+            background: rgba(255, 77, 77, 0.15);
+            color: #FF4D4D;
         }}
 
         /* Log Level Colors */
@@ -851,6 +928,248 @@ pub(super) fn install_css(app_font_size: u32) {
         /* Settings Page */
         .obsidian-settings-root {{
             padding: 16px 0 16px 24px;
+        }}
+
+        .obsidian-setup-root {{
+            padding: 28px;
+        }}
+
+        .obsidian-setup-shell {{
+            min-width: 760px;
+            max-width: 760px;
+            background: rgba(0, 0, 0, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 22px;
+            box-shadow: 0 28px 72px rgba(0, 0, 0, 0.42);
+        }}
+
+        .obsidian-setup-topbar {{
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.015);
+        }}
+
+        .obsidian-setup-dot {{
+            font-size: {font_9};
+            opacity: 0.9;
+        }}
+
+        .obsidian-setup-dot.red {{
+            color: rgba(255, 95, 86, 0.9);
+        }}
+
+        .obsidian-setup-dot.amber {{
+            color: rgba(255, 189, 46, 0.9);
+        }}
+
+        .obsidian-setup-dot.green {{
+            color: rgba(39, 201, 63, 0.9);
+        }}
+
+        .obsidian-setup-topbar-title {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            opacity: 0.36;
+        }}
+
+        .obsidian-setup-body {{
+            padding: 28px 30px 30px 30px;
+        }}
+
+        .obsidian-setup-eyebrow {{
+            color: {accent};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            opacity: 0.9;
+        }}
+
+        .obsidian-setup-hero {{
+            margin-bottom: 18px;
+        }}
+
+        .obsidian-setup-title {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_13};
+            font-weight: 700;
+            opacity: 0.98;
+            margin: 2px 0 4px 0;
+        }}
+
+        .obsidian-setup-copy {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            opacity: 0.58;
+            line-height: 1.6;
+        }}
+
+        .obsidian-setup-progress {{
+            margin-bottom: 18px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }}
+
+        .obsidian-setup-step {{
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            padding: 0 0 10px 0;
+        }}
+
+        .obsidian-setup-step.active {{
+            border-bottom-color: rgba(255, 77, 77, 0.72);
+        }}
+
+        .obsidian-setup-step-index {{
+            color: {accent};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            opacity: 0.36;
+        }}
+
+        .obsidian-setup-step-label {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            opacity: 0.42;
+        }}
+
+        .obsidian-setup-step.active .obsidian-setup-step-label {{
+            opacity: 0.94;
+        }}
+
+        .obsidian-setup-step.active .obsidian-setup-step-index {{
+            opacity: 0.82;
+        }}
+
+        .obsidian-setup-pages {{
+            min-height: 286px;
+        }}
+
+        .obsidian-setup-page {{
+            background: transparent;
+            border: none;
+            padding: 2px 0 0 0;
+        }}
+
+        .obsidian-setup-page-title {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            opacity: 0.92;
+        }}
+
+        .obsidian-setup-page-copy {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            opacity: 0.42;
+            line-height: 1.55;
+            margin-bottom: 10px;
+        }}
+
+        .obsidian-setup-setting {{
+            background: rgba(255, 255, 255, 0.018);
+            border: 1px solid rgba(255, 255, 255, 0.055);
+            border-radius: 14px;
+            padding: 14px 16px;
+        }}
+
+        .obsidian-setup-setting-title {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            opacity: 0.86;
+        }}
+
+        .obsidian-setup-setting-copy {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            opacity: 0.4;
+            line-height: 1.5;
+        }}
+
+        .obsidian-setup-value {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            opacity: 0.62;
+            line-height: 1.6;
+        }}
+
+        .obsidian-setup-footer {{
+            margin-top: 16px;
+            padding-top: 6px;
+        }}
+
+        button.obsidian-setup-secondary {{
+            background: transparent;
+            color: {text_primary};
+            border: none;
+            border-radius: 0;
+            padding: 4px 0;
+            min-height: 28px;
+            box-shadow: none;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            opacity: 0.54;
+            transition: opacity 140ms ease, color 140ms ease;
+        }}
+
+        button.obsidian-setup-secondary:hover {{
+            opacity: 1.0;
+        }}
+
+        button.obsidian-setup-action {{
+            background: transparent;
+            color: {text_primary};
+            border: none;
+            border-radius: 0;
+            padding: 4px 0;
+            margin-top: 0;
+            min-height: 28px;
+            box-shadow: none;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            opacity: 0.9;
+            transition: opacity 140ms ease, color 140ms ease;
+        }}
+
+        button.obsidian-setup-action:hover {{
+            opacity: 1.0;
+        }}
+
+        .obsidian-setup-nav-content {{
+            background: transparent;
+        }}
+
+        .obsidian-setup-nav-label {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            opacity: inherit;
+        }}
+
+        .obsidian-setup-nav-icon {{
+            color: {text_primary};
+            opacity: inherit;
         }}
 
         .obsidian-settings-header {{
@@ -1132,6 +1451,37 @@ pub(super) fn install_css(app_font_size: u32) {
             font-size: {font_10};
             opacity: 0.38;
             margin-top: 4px;
+        }}
+
+        .obsidian-about-section-header {{
+            color: {accent};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_11};
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.8;
+        }}
+
+        .obsidian-about-credits-box {{
+            opacity: 0.7;
+        }}
+
+        .obsidian-about-category-label {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            opacity: 0.4;
+            text-transform: lowercase;
+        }}
+
+        .obsidian-about-license-text {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            opacity: 0.35;
+            line-height: 1.6;
         }}
 
         button.obsidian-settings-save {{

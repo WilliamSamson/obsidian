@@ -1,19 +1,18 @@
 mod browser;
+mod host;
 mod navigation;
-
 use std::{cell::RefCell, rc::Rc};
-
 use gtk::{
     pango, prelude::*, Box as GtkBox, Button, Entry, Label, Orientation, Overflow, PolicyType,
     ScrolledWindow,
 };
-use webkit6::{Settings as WebSettings, WebView};
-
+use webkit6::{Settings as WebSettings, WebContext, WebView};
 use super::settings::Settings;
 use browser::load_home_page;
+pub(super) use host::WebPaneHost;
 use navigation::bind_navigation;
 
-pub(super) fn build_web_pane(settings: Rc<RefCell<Settings>>) -> GtkBox {
+pub(super) fn build_web_pane(settings: Rc<RefCell<Settings>>, context: WebContext) -> GtkBox {
     let root = GtkBox::new(Orientation::Vertical, 0);
     root.set_vexpand(true);
     root.set_hexpand(true);
@@ -21,12 +20,10 @@ pub(super) fn build_web_pane(settings: Rc<RefCell<Settings>>) -> GtkBox {
     root.set_overflow(Overflow::Hidden);
     root.add_css_class("obsidian-web-root");
 
-    let header = build_header();
     let controls = build_controls();
     let status = build_status();
-    let (frame, web_view) = build_web_frame();
+    let (frame, web_view) = build_web_frame(&context);
 
-    root.append(&header.row);
     root.append(&controls.row);
     root.append(&status);
     root.append(&frame);
@@ -34,14 +31,20 @@ pub(super) fn build_web_pane(settings: Rc<RefCell<Settings>>) -> GtkBox {
     let state = Rc::new(WebPaneState {
         settings,
         web_view,
-        title: header.title,
         address: controls.address,
         status,
         back_button: controls.back_button,
         forward_button: controls.forward_button,
     });
 
-    bind_navigation(&state, &controls.reload_button, &controls.home_button, &controls.go_button);
+    bind_navigation(
+        &state,
+        &controls.reload_button,
+        &controls.home_button,
+        &controls.zoom_out_button,
+        &controls.zoom_reset_button,
+        &controls.go_button,
+    );
     load_home_page(&state);
 
     root
@@ -50,16 +53,10 @@ pub(super) fn build_web_pane(settings: Rc<RefCell<Settings>>) -> GtkBox {
 pub(super) struct WebPaneState {
     pub(super) settings: Rc<RefCell<Settings>>,
     pub(super) web_view: WebView,
-    pub(super) title: Label,
     pub(super) address: Entry,
     pub(super) status: Label,
     pub(super) back_button: Button,
     pub(super) forward_button: Button,
-}
-
-struct HeaderWidgets {
-    row: GtkBox,
-    title: Label,
 }
 
 struct ControlWidgets {
@@ -68,23 +65,10 @@ struct ControlWidgets {
     forward_button: Button,
     reload_button: Button,
     home_button: Button,
+    zoom_out_button: Button,
+    zoom_reset_button: Button,
     go_button: Button,
     address: Entry,
-}
-
-fn build_header() -> HeaderWidgets {
-    let row = GtkBox::new(Orientation::Horizontal, 0);
-    row.add_css_class("obsidian-web-header");
-
-    let title = Label::new(Some("browser"));
-    title.add_css_class("obsidian-web-title");
-    title.set_xalign(0.0);
-    title.set_hexpand(true);
-    title.set_ellipsize(pango::EllipsizeMode::End);
-
-    row.append(&title);
-
-    HeaderWidgets { row, title }
 }
 
 fn build_controls() -> ControlWidgets {
@@ -101,12 +85,16 @@ fn build_controls() -> ControlWidgets {
     let forward_button = icon_button("go-next-symbolic", "Forward");
     let reload_button = icon_button("view-refresh-symbolic", "Reload");
     let home_button = icon_button("go-home-symbolic", "Home");
+    let zoom_out_button = icon_button("zoom-out-symbolic", "Zoom out");
+    let zoom_reset_button = text_button("100%", "Reset zoom");
     let go_button = icon_button("go-jump-symbolic", "Open");
 
     nav.append(&back_button);
     nav.append(&forward_button);
     nav.append(&reload_button);
     nav.append(&home_button);
+    nav.append(&zoom_out_button);
+    nav.append(&zoom_reset_button);
 
     let address = Entry::new();
     address.add_css_class("obsidian-web-entry");
@@ -130,6 +118,8 @@ fn build_controls() -> ControlWidgets {
         forward_button,
         reload_button,
         home_button,
+        zoom_out_button,
+        zoom_reset_button,
         go_button,
         address,
     }
@@ -143,14 +133,16 @@ fn build_status() -> Label {
     status
 }
 
-fn build_web_frame() -> (ScrolledWindow, WebView) {
+fn build_web_frame(context: &WebContext) -> (ScrolledWindow, WebView) {
     let web_settings = WebSettings::new();
     web_settings.set_enable_developer_extras(true);
     web_settings.set_enable_back_forward_navigation_gestures(true);
     web_settings.set_enable_smooth_scrolling(true);
 
     let web_view = WebView::builder()
+        .web_context(context)
         .settings(&web_settings)
+        .zoom_level(0.75)
         .hexpand(true)
         .vexpand(true)
         .build();
@@ -181,5 +173,13 @@ fn icon_button(icon_name: &str, tooltip: &str) -> Button {
         .icon_name(icon_name)
         .tooltip_text(tooltip)
         .css_classes(["obsidian-web-button"])
+        .build()
+}
+
+fn text_button(label: &str, tooltip: &str) -> Button {
+    Button::builder()
+        .label(label)
+        .tooltip_text(tooltip)
+        .css_classes(["obsidian-web-button", "obsidian-web-text-button"])
         .build()
 }

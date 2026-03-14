@@ -7,7 +7,6 @@ use super::WebPaneState;
 pub(super) fn load_home_page(state: &WebPaneState) {
     let browser = browser_profile(&state.settings.borrow().default_browser);
     state.address.set_text(browser.home_uri);
-    state.title.set_text("browser");
     state.status.set_text(browser.label);
     state.web_view.load_uri(browser.home_uri);
 }

@@ -1,5 +1,6 @@
 use gtk::{
-    gio, pango::FontDescription, prelude::*, Box as GtkBox, EventControllerFocus, Orientation,
+    gdk, gio, pango::FontDescription, prelude::*, Box as GtkBox, EventControllerFocus,
+    EventControllerKey, Orientation,
 };
 use vte4::{prelude::*, CursorBlinkMode, CursorShape, Terminal};
 
@@ -27,6 +28,7 @@ impl SessionView {
 
         root.append(&terminal);
         let _ = input::append_input_row(&root, &terminal, runtime.status_path());
+        wire_terminal_clipboard(&terminal);
 
         Self {
             root,
@@ -81,4 +83,23 @@ impl SessionView {
         };
         self.terminal.set_cursor_shape(shape);
     }
+}
+
+fn wire_terminal_clipboard(terminal: &Terminal) {
+    let controller = EventControllerKey::new();
+    let terminal_ref = terminal.clone();
+    // Terminal clone is required because GTK key controllers outlive setup and must operate on the live VTE widget.
+    controller.connect_key_pressed(move |_, key, _, modifiers| {
+        if input::handle_terminal_clipboard_shortcuts(&terminal_ref, key, modifiers) {
+            return gtk::glib::Propagation::Stop;
+        }
+
+        if modifiers == gdk::ModifierType::empty() && key == gdk::Key::Insert {
+            terminal_ref.paste_clipboard();
+            return gtk::glib::Propagation::Stop;
+        }
+
+        gtk::glib::Propagation::Proceed
+    });
+    terminal.add_controller(controller);
 }
