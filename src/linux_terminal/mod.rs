@@ -18,7 +18,11 @@ mod view;
 mod web;
 mod workspace;
 
-use std::io;
+use std::{
+    io,
+    path::Path,
+    process::{Command, Stdio},
+};
 
 use gtk::{
     gdk, gio, glib, prelude::*, Application, ApplicationWindow, Box as GtkBox, IconTheme,
@@ -39,11 +43,7 @@ const MARGIN_BOTTOM: i32 = 16;
 
 pub(crate) fn run() -> io::Result<()> {
     let initial_size = window_state::load_window_size()?.unwrap_or_default();
-    if std::env::var_os("APPDIR").is_some() {
-        if let Err(error) = glib::setenv("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1", true) {
-            eprintln!("webkit sandbox override failed: {error}");
-        }
-    }
+    configure_webkit_runtime();
     glib::set_application_name(APP_TITLE);
     glib::set_prgname(Some(APP_ID));
     let app = Application::builder()
@@ -53,6 +53,74 @@ pub(crate) fn run() -> io::Result<()> {
     app.connect_activate(move |app| build_window(app, initial_size.width, initial_size.height));
     let _ = app.run();
     Ok(())
+}
+
+fn configure_webkit_runtime() {
+    if !should_disable_webkit_sandbox() {
+        return;
+    }
+
+    if let Err(error) = glib::setenv("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1", true) {
+        eprintln!("webkit sandbox override failed: {error}");
+    }
+}
+
+fn should_disable_webkit_sandbox() -> bool {
+    if std::env::var_os("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS").is_some() {
+        return true;
+    }
+
+    if std::env::var_os("APPDIR").is_some() {
+        return true;
+    }
+
+    !webkit_sandbox_supported()
+}
+
+fn webkit_sandbox_supported() -> bool {
+    if !command_available("xdg-dbus-proxy") {
+        return false;
+    }
+
+    let true_path = if Path::new("/usr/bin/true").exists() {
+        "/usr/bin/true"
+    } else {
+        "/bin/true"
+    };
+
+    let mut probe = Command::new("bwrap");
+    probe
+        .arg("--unshare-user")
+        .arg("--uid")
+        .arg("0")
+        .arg("--gid")
+        .arg("0")
+        .arg("--proc")
+        .arg("/proc")
+        .arg("--dev")
+        .arg("/dev");
+
+    for path in ["/usr", "/bin", "/lib", "/lib64"] {
+        if Path::new(path).exists() {
+            probe.arg("--ro-bind").arg(path).arg(path);
+        }
+    }
+
+    probe
+        .arg(true_path)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+fn command_available(name: &str) -> bool {
+    Command::new(name)
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok()
 }
 
 fn build_window(app: &Application, width: u32, height: u32) {

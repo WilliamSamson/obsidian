@@ -1,95 +1,106 @@
 # Obsidian
 
-Obsidian is a GTK/VTE desktop terminal workspace written in Rust. It combines a focused terminal shell, a JSON log inspection pane, an embedded web viewer, and a first-run setup flow inside one desktop application.
+Obsidian is for developers who live in the terminal and hate switching windows to tail logs, check docs, or do a quick search. It puts your shell, a live JSON log viewer, and a web pane side by side in one workspace — so you stop context-switching and start shipping.
 
-## Current Scope
+A GPU-accelerated GTK4/VTE terminal built in Rust for Linux. Designed for backend and DevOps workflows where `kubectl logs`, application traces, and a browser are always one pane away.
 
-The project currently ships with these primary experiences:
+## Screenshots
 
-- Embedded terminal workspace with tabs, split panes, and side tools
-- Log workspace for viewing, filtering, and exporting newline-delimited JSON logs
-- Embedded web viewer for in-app browsing beside the terminal
-- First-run setup and autosaving settings for terminal/app behavior
+![Main Terminal](docs/screenshots/main-terminal.png)
+
+![Web View](docs/screenshots/web-view.png)
+
+![Live Logr](docs/screenshots/live-logr.png)
+
+![File View](docs/screenshots/file-view.png)
+
+![Image View](docs/screenshots/image-view.png)
+
+![About Page](docs/screenshots/about-page.png)
+
+## Install
+
+Download the latest `.deb` package from [GitHub Releases](https://github.com/WilliamSamson/obsidian/releases) and install:
+
+```bash
+sudo dpkg -i obsidian_0.1.0~beta.1_amd64.deb
+sudo apt-get install -f   # pulls missing dependencies if needed
+```
+
+Runtime dependencies (installed automatically by apt):
+- `libgtk-4-1`
+- `libvte-2.91-gtk4-0`
+- `libwebkitgtk-6.0-4`
+
+Uninstall:
+
+```bash
+sudo apt remove obsidian
+```
 
 ## Features
 
-- Custom desktop chrome with a dark, terminal-native visual system
-- First-run setup flow with checkpoint restore
+- Custom desktop chrome with macOS-style window controls
+- First-run setup wizard with checkpoint restore
 - Autosaving settings with separate terminal and app font sizes
-- Embedded terminal tabs with:
-  - tab rename
-  - tab reorder
-  - quick switcher
-  - split panes
-  - pane-local terminal multiplexer sessions
-  - pane focus switching
+- Desktop notification toggle for command completion
+- Terminal tabs with rename, reorder, quick switcher, and split panes
+- Pane-local terminal multiplexer sessions with keyboard cycling
 - Terminal enhancements:
-  - clipboard integration
-  - command history
+  - clipboard integration and command history
   - in-app command completion notices
-  - desktop command notifications
   - terminal inspector
-  - experimental sixel image rendering toggle
+  - sixel image rendering toggle
   - ligature shaping toggle
-- Multiplexer controls:
-  - pane-local session bar
-  - new/close/switch terminal sessions inside a pane
-  - keyboard session cycling
-  - direct session jump with `Ctrl+Alt+1..9`
-- Terminal selection copies directly on highlight
 - Side panes:
-  - `logr` log viewer
-  - embedded web pane with selectable default browser
-- Better workspace restore for tabs, split position, and active pane
-- Global in-app version source
-- File-based log viewing with live follow support
-- Piped stdin support for shell-driven workflows
-- Startup filters via repeated `--filter` arguments
-- In-app search, level filtering, export, and help
-- Graceful rendering of malformed JSON lines as visible error rows
+  - `logr` JSON log viewer with live follow, filtering, and export
+  - embedded web pane with selectable default search engine
+- Workspace restore for tabs, split position, and active pane
+- File-based log viewing with piped stdin support
+- Startup filters via `--filter` arguments
+- Graceful rendering of malformed JSON lines
 
 See [docs/FEATURES.md](docs/FEATURES.md) for a fuller feature inventory.
 See [docs/TERMINAL_WORKSPACE_GUIDE.md](docs/TERMINAL_WORKSPACE_GUIDE.md) for the full desktop terminal usage guide.
 
-## Build
+## Build from Source
 
 Requirements:
 
 - Rust toolchain
-- GTK4 development libraries
-- VTE4 development libraries
-- WebKitGTK 6.0 development libraries for the embedded web pane
+- GTK4, VTE4, and WebKitGTK 6.0 development libraries
 
-Build the project:
+Install build dependencies (Ubuntu 24.04+):
 
 ```bash
-cargo build
+./scripts/install-ubuntu-deps.sh
 ```
 
-Build an optimized release binary:
+Build and run:
 
 ```bash
 cargo build --release
+./target/release/obsidian
 ```
 
-Install locally:
+Build the `.deb` package:
 
 ```bash
-cargo install --path .
+./scripts/build-release.sh
 ```
 
-## Run
+## Usage
 
-Launch the embedded terminal window:
+Launch the terminal workspace:
 
 ```bash
-cargo run --
+obsidian
 ```
 
-Open the log workspace against a file:
+Open the log viewer against a file:
 
 ```bash
-cargo run -- sample-logs.jsonl
+obsidian sample-logs.jsonl
 ```
 
 Pipe logs from another command:
@@ -98,44 +109,53 @@ Pipe logs from another command:
 kubectl logs mypod -f | obsidian
 ```
 
-Start with filters already applied:
+Start with filters:
 
 ```bash
-cargo run -- --filter level=error --filter query=request sample-logs.jsonl
+obsidian --filter level=error --filter query=request sample-logs.jsonl
 ```
 
-Supported startup filter keys:
-
-- `level=trace|debug|info|warn|error`
-- `query=<text>`
-- `search=<text>`
+Supported filter keys: `level=trace|debug|info|warn|error`, `query=<text>`, `search=<text>`
 
 ## Log Workspace Controls
 
-- `Up/Down`, `j/k`, `PageUp/PageDown`, `Home/End`: navigate
-- Mouse wheel: scroll
-- `/`: enter search mode
-- `Enter` or `Esc`: exit search mode
-- `t`, `d`, `i`, `w`, `e`: toggle level filters
-- `c`: clear query and level filters
-- `x`: export the filtered view to `obsidian-export.jsonl`
-- `?`: toggle help
-- `q`: quit
+| Key | Action |
+|-----|--------|
+| `Up/Down`, `j/k`, `PgUp/PgDn`, `Home/End` | Navigate |
+| Mouse wheel | Scroll |
+| `/` | Enter search mode |
+| `Enter` or `Esc` | Exit search mode |
+| `t`, `d`, `i`, `w`, `e` | Toggle level filters |
+| `c` | Clear query and level filters |
+| `x` | Export filtered view |
+| `?` | Toggle help |
+| `q` | Quit |
 
 ## Repository Layout
 
-- `src/app.rs`: ratatui application shell
-- `src/features/logs/`: log ingestion, filters, and viewer logic
-- `src/linux_terminal/`: GTK/VTE terminal window implementation
-- `src/renderer/`: custom window renderer and pixel-based chrome
-- `src/ui/`: shared layout and theme primitives
-- `docs/FEATURES.md`: current product feature list
+```
+src/
+  app.rs                    Ratatui application shell
+  features/logs/            Log ingestion, filters, and viewer
+  linux_terminal/           GTK/VTE terminal workspace
+  renderer/                 Custom window renderer
+  ui/                       Shared layout and theme
+scripts/
+  build-deb.sh              Build .deb package
+  build-release.sh          Build release artifact
+  install.sh                Per-user installer (non-deb)
+  uninstall.sh              Per-user uninstaller
+  install-ubuntu-deps.sh    Install build dependencies
+docs/
+  FEATURES.md               Product feature list
+  LINUX_BUNDLE_PACK.md      AppDir/AppImage packaging guide
+```
 
 ## Fixtures
 
 - `sample-logs.jsonl`: clean baseline fixture
 - `sample-malformed.jsonl`: malformed-line fixture for error rendering
 
-## Demo
+## License
 
-A starter VHS script is included in `demo.tape`.
+This project is licensed under the [GNU General Public License v3.0](LICENSE).

@@ -26,7 +26,7 @@ const WINDOW_HEIGHT: f64 = 720.0;
 const TICK_RATE: Duration = Duration::from_millis(16); // ~60 FPS for responsive terminal
 const RESIZE_BORDER: i32 = 8;
 const LOGO_DARK_BYTES: &[u8] =
-    include_bytes!("/home/kayode-olalere/flutter_projects/echo_v2/assets/images/logo_dark.png");
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/icon_64.png"));
 
 #[derive(Default)]
 struct WindowChrome {

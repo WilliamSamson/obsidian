@@ -1623,7 +1623,6 @@ pub(super) fn install_css(app_font_size: u32) {
 
         .obsidian-setup-shell {{
             min-width: 760px;
-            max-width: 760px;
             background: rgba(0, 0, 0, 0.78);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 22px;

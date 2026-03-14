@@ -12,6 +12,9 @@ idea.md
 notes/
 plans/
 
+# Local AI/tool config
+.claude/settings.local.json
+
 # Editor / OS noise
 .idea/
 .vscode/
