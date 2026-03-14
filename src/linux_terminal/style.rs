@@ -171,6 +171,10 @@ pub(super) fn install_css() {
             border-color: {accent};
         }}
 
+        box.obsidian-input-pill.terminal-active {{
+            border-color: {accent};
+        }}
+
         button.obsidian-workspace-button,
         button.obsidian-tool-button {{
             background: transparent;
@@ -247,20 +251,6 @@ pub(super) fn install_css() {
             opacity: 1.0;
         }}
 
-        button.obsidian-tab-button {{
-            background: transparent;
-            color: {text_primary};
-            border: none;
-            border-radius: 0;
-            box-shadow: none;
-            padding: 0;
-            margin: 0;
-        }}
-
-        button.obsidian-tab-button:hover {{
-            background: transparent;
-        }}
-
         button.obsidian-tab-close-button {{
             background: transparent;
             color: {text_primary};
@@ -269,7 +259,7 @@ pub(super) fn install_css() {
             min-height: 20px;
             min-width: 20px;
             padding: 0;
-            margin-right: 4px;
+            margin-left: 2px;
             opacity: 0;
             box-shadow: none;
             transition: opacity 140ms ease, background 140ms ease;
@@ -591,13 +581,12 @@ pub(super) fn install_css() {
 
         /* Settings Page */
         .obsidian-settings-root {{
-            padding: 16px;
+            padding: 16px 0 16px 24px;
         }}
 
         .obsidian-settings-header {{
-            padding: 0 0 12px 0;
-            margin-bottom: 8px;
-            border-bottom: 1px solid {border};
+            padding: 4px 24px 14px 0;
+            margin-bottom: 4px;
         }}
 
         button.obsidian-settings-back {{
@@ -609,7 +598,7 @@ pub(super) fn install_css() {
             min-width: 28px;
             padding: 4px;
             box-shadow: none;
-            opacity: 0.5;
+            opacity: 0.4;
             transition: opacity 140ms ease;
         }}
 
@@ -620,15 +609,15 @@ pub(super) fn install_css() {
         .obsidian-settings-title {{
             color: {text_primary};
             font-family: \"DejaVu Sans Mono\", monospace;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            opacity: 0.6;
+            text-transform: lowercase;
+            letter-spacing: 0.06em;
+            opacity: 0.85;
         }}
 
         .obsidian-settings-content {{
-            padding: 0 8px;
+            padding: 0 18px 0 4px;
         }}
 
         .obsidian-settings-section {{
@@ -638,28 +627,41 @@ pub(super) fn install_css() {
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            padding: 16px 0 6px 0;
-            margin-top: 4px;
-            border-bottom: 1px solid rgba(255, 77, 77, 0.15);
+            padding: 20px 0 6px 0;
+            margin-top: 2px;
+            border-bottom: 1px solid rgba(255, 77, 77, 0.12);
         }}
 
         .obsidian-settings-row {{
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+        }}
+
+        .obsidian-settings-about {{
+            padding: 12px 0;
         }}
 
         .obsidian-settings-label {{
             color: {text_primary};
             font-family: \"DejaVu Sans Mono\", monospace;
             font-size: 11px;
-            opacity: 0.7;
+            opacity: 0.6;
         }}
 
         .obsidian-settings-value {{
             color: {text_primary};
             font-family: \"DejaVu Sans Mono\", monospace;
             font-size: 10px;
-            opacity: 0.4;
+            opacity: 0.35;
+        }}
+
+        .obsidian-settings-about-copy {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            opacity: 0.5;
+            max-width: 72ch;
         }}
 
         entry.obsidian-settings-entry {{
@@ -683,6 +685,7 @@ pub(super) fn install_css() {
             outline: none;
         }}
 
+        /* SpinButton: strip grey backgrounds */
         spinbutton.obsidian-settings-spin {{
             background: transparent;
             color: {text_primary};
@@ -691,6 +694,11 @@ pub(super) fn install_css() {
             font-family: \"DejaVu Sans Mono\", monospace;
             font-size: 11px;
             min-width: 80px;
+            box-shadow: none;
+        }}
+
+        spinbutton.obsidian-settings-spin > text {{
+            background: transparent;
         }}
 
         spinbutton.obsidian-settings-spin > button {{
@@ -698,15 +706,165 @@ pub(super) fn install_css() {
             color: {text_primary};
             border: none;
             box-shadow: none;
-            opacity: 0.5;
+            opacity: 0.4;
+            transition: opacity 140ms ease;
         }}
 
         spinbutton.obsidian-settings-spin > button:hover {{
             opacity: 1.0;
+            background: transparent;
+        }}
+
+        /* DropDown: strip grey backgrounds */
+        .obsidian-settings-dropdown {{
+            background: transparent;
+            border: 1px solid {border};
+            border-radius: 4px;
+            box-shadow: none;
+            min-width: 140px;
+        }}
+
+        .obsidian-settings-dropdown > button {{
+            background: transparent;
+            color: {text_primary};
+            border: none;
+            box-shadow: none;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 11px;
+            padding: 4px 8px;
+            opacity: 0.7;
+            transition: opacity 140ms ease;
+        }}
+
+        .obsidian-settings-dropdown > button:hover {{
+            opacity: 1.0;
+            background: transparent;
+        }}
+
+        .obsidian-settings-dropdown > popover {{
+            background: {window_bg};
+            border: 1px solid {border};
+            border-radius: 6px;
+        }}
+
+        .obsidian-settings-dropdown > popover > contents {{
+            background: {window_bg};
+            border-radius: 6px;
+            padding: 2px 0;
+        }}
+
+        .obsidian-settings-dropdown > popover listview {{
+            background: transparent;
+        }}
+
+        .obsidian-settings-dropdown > popover listview > row {{
+            background: transparent;
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 11px;
+            padding: 4px 8px;
+            transition: background 100ms ease;
+        }}
+
+        .obsidian-settings-dropdown > popover listview > row:hover {{
+            background: rgba(255, 255, 255, 0.04);
+        }}
+
+        .obsidian-settings-dropdown > popover listview > row:checked {{
+            background: rgba(255, 77, 77, 0.10);
+            color: {accent};
+        }}
+
+        /* Switch: strip grey backgrounds */
+        switch.obsidian-settings-switch {{
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid {border};
+            border-radius: 999px;
+            box-shadow: none;
+            min-width: 42px;
+            min-height: 22px;
+            transition: background 140ms ease, border-color 140ms ease;
+        }}
+
+        switch.obsidian-settings-switch:checked {{
+            background: rgba(255, 77, 77, 0.20);
+            border-color: rgba(255, 77, 77, 0.35);
+        }}
+
+        switch.obsidian-settings-switch > image {{
+            color: transparent;
+        }}
+
+        switch.obsidian-settings-switch slider {{
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 50%;
+            box-shadow: none;
+            min-width: 16px;
+            min-height: 16px;
+            margin: 2px;
+            transition: background 140ms ease;
+        }}
+
+        switch.obsidian-settings-switch:checked slider {{
+            background: {accent};
         }}
 
         .obsidian-settings-footer {{
-            padding: 16px 0 8px 0;
+            padding: 20px 0 8px 0;
+        }}
+
+        button.obsidian-settings-link {{
+            background: transparent;
+            color: {accent};
+            border: 1px solid rgba(255, 77, 77, 0.18);
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 10px;
+            box-shadow: none;
+            transition: background 140ms ease, border-color 140ms ease;
+        }}
+
+        button.obsidian-settings-link:hover {{
+            background: rgba(255, 77, 77, 0.08);
+            border-color: rgba(255, 77, 77, 0.30);
+        }}
+
+        .obsidian-settings-about-page {{
+            padding: 24px;
+        }}
+
+        .obsidian-settings-about-panel {{
+            max-width: 640px;
+        }}
+
+        .obsidian-settings-about-title {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 22px;
+            font-weight: 700;
+            text-transform: lowercase;
+            letter-spacing: 0.06em;
+            opacity: 0.96;
+        }}
+
+        .obsidian-settings-about-name {{
+            color: {accent};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            opacity: 0.9;
+            margin-top: 8px;
+        }}
+
+        .obsidian-settings-about-meta {{
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 10px;
+            opacity: 0.38;
+            margin-top: 4px;
         }}
 
         button.obsidian-settings-save {{
@@ -714,7 +872,7 @@ pub(super) fn install_css() {
             color: {accent};
             border: 1px solid {accent};
             border-radius: 4px;
-            padding: 6px 20px;
+            padding: 6px 24px;
             font-family: \"DejaVu Sans Mono\", monospace;
             font-size: 11px;
             font-weight: 700;

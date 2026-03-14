@@ -1,9 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
 use gtk::{
-    gdk,
+    gdk, glib,
     prelude::*,
-    Box as GtkBox, Button, GestureDrag, Label, Notebook, Orientation,
+    Box as GtkBox, Button, GestureDrag, Label, Notebook, Orientation, ScrolledWindow,
 };
 
 use super::{ops, super::tab::TabView};
@@ -12,7 +12,10 @@ const DRAG_THRESHOLD: f64 = 8.0;
 
 /// Lightweight active-tab update: just toggles CSS classes without rebuilding widgets.
 pub(super) fn update_active_tab(container: &GtkBox, notebook: &Notebook) {
-    let current = current_index(notebook);
+    update_active_tab_at(container, current_index(notebook));
+}
+
+fn update_active_tab_at(container: &GtkBox, current: usize) {
     let mut index = 0usize;
     let mut child = container.first_child();
     while let Some(widget) = child {
@@ -31,11 +34,52 @@ pub(super) fn update_active_tab(container: &GtkBox, notebook: &Notebook) {
     }
 }
 
+pub(super) fn reveal_active_tab(
+    container: &GtkBox,
+    scroller: &ScrolledWindow,
+    notebook: &Notebook,
+) {
+    reveal_active_tab_at(container, scroller, current_index(notebook));
+}
+
+pub(super) fn reveal_active_tab_at(
+    container: &GtkBox,
+    scroller: &ScrolledWindow,
+    current: usize,
+) {
+    let container = container.clone();
+    let scroller = scroller.clone();
+
+    glib::idle_add_local_once(move || {
+        let adjustment = scroller.hadjustment();
+
+        let Some(widget) = nth_child(&container, current) else {
+            return;
+        };
+
+        let allocation = widget.allocation();
+        let left = allocation.x() as f64;
+        let right = left + allocation.width() as f64;
+        let current_value = adjustment.value();
+        let visible_left = current_value;
+        let visible_right = current_value + adjustment.page_size();
+
+        let target = if left < visible_left {
+            left
+        } else if right > visible_right {
+            right - adjustment.page_size()
+        } else {
+            current_value
+        };
+
+        let max_value = (adjustment.upper() - adjustment.page_size()).max(adjustment.lower());
+        adjustment.set_value(target.clamp(adjustment.lower(), max_value));
+    });
+}
+
 /// Recursively update active classes on tab button labels and close buttons.
 fn update_children_active(widget: &gtk::Widget, is_active: bool) {
     if widget.has_css_class("obsidian-tab-button-label")
-        || widget.has_css_class("obsidian-tab-select-button")
-        || widget.has_css_class("obsidian-tab-button")
         || widget.has_css_class("obsidian-tab-close-button")
     {
         if is_active {
@@ -58,9 +102,16 @@ pub(super) fn rebuild_tab_strip(
     notebook: &Notebook,
     tabs: &Rc<RefCell<Vec<TabView>>>,
 ) {
-    clear_children(container);
+    rebuild_tab_strip_at(container, notebook, tabs, current_index(notebook));
+}
 
-    let current = current_index(notebook);
+pub(super) fn rebuild_tab_strip_at(
+    container: &GtkBox,
+    notebook: &Notebook,
+    tabs: &Rc<RefCell<Vec<TabView>>>,
+    current: usize,
+) {
+    clear_children(container);
     let tab_count = tabs.borrow().len();
 
     for (index, tab) in tabs.borrow().iter().enumerate() {
@@ -80,29 +131,8 @@ pub(super) fn rebuild_tab_strip(
             label.add_css_class("active");
         }
 
-        let select_button = Button::builder()
-            .icon_name("go-next-symbolic")
-            .css_classes(["obsidian-tab-select-button"])
-            .tooltip_text(if is_active {
-                "Current tab"
-            } else {
-                "Switch to this tab"
-            })
-            .focus_on_click(false)
-            .build();
-        select_button.set_sensitive(!is_active);
-        if is_active {
-            select_button.add_css_class("active");
-        }
-
-        let notebook_switch = notebook.clone();
-        select_button.connect_clicked(move |_| {
-            notebook_switch.set_current_page(Some(index as u32));
-        });
-
         label.set_hexpand(true);
         tab_root.append(&label);
-        tab_root.append(&select_button);
 
         if tab_count > 1 {
             let close_button = Button::builder()
@@ -132,6 +162,17 @@ pub(super) fn rebuild_tab_strip(
 
         container.append(&tab_root);
     }
+}
+
+fn activate_tab(notebook: &Notebook, index: usize) {
+    notebook.set_current_page(Some(index as u32));
+
+    let notebook = notebook.clone();
+    glib::idle_add_local_once(move || {
+        if let Some(page) = notebook.nth_page(Some(index as u32)) {
+            let _ = page.child_focus(gtk::DirectionType::TabForward);
+        }
+    });
 }
 
 fn attach_drag(
@@ -177,6 +218,9 @@ fn attach_drag(
                         notebook_ref.set_current_page(Some(target as u32));
                     }
                 }
+            } else {
+                // Click: switch to this tab
+                activate_tab(&notebook_ref, index);
             }
         });
     }
@@ -246,6 +290,21 @@ fn clear_children(container: &GtkBox) {
     while let Some(child) = container.first_child() {
         container.remove(&child);
     }
+}
+
+fn nth_child(container: &GtkBox, index: usize) -> Option<gtk::Widget> {
+    let mut current = 0usize;
+    let mut child = container.first_child();
+    while let Some(widget) = child {
+        if current == index {
+            return Some(widget);
+        }
+
+        current += 1;
+        child = widget.next_sibling();
+    }
+
+    None
 }
 
 fn current_index(notebook: &Notebook) -> usize {

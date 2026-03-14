@@ -18,6 +18,7 @@ use gtk::{
     GestureClick, IconTheme, Label, Orientation, Revealer, RevealerTransitionType, Stack,
     StackTransitionType,
 };
+use std::{cell::RefCell, rc::Rc};
 use winit::dpi::PhysicalSize;
 
 use crate::window_state;
@@ -56,9 +57,12 @@ fn build_window(app: &Application, width: u32, height: u32) {
 
     style::install_css();
 
+    // Rc<RefCell<Settings>> shares the mutable runtime settings across settings UI and workspace callbacks on the GTK thread.
+    let app_settings = Rc::new(RefCell::new(settings::load_settings()));
+
     let (header, settings_button) = header::build_header();
-    let workspace = workspace::WorkspaceView::new();
-    let container = shell_container(workspace.root());
+    let workspace = std::rc::Rc::new(workspace::WorkspaceView::new(app_settings.clone()));
+    let container = shell_container(workspace.root(), app_settings.borrow().logr_panel_open);
 
     // Stack: workspace (main) <-> settings
     let stack = Stack::new();
@@ -67,9 +71,16 @@ fn build_window(app: &Application, width: u32, height: u32) {
     stack.add_named(&container, Some("workspace"));
 
     let stack_ref = stack.clone();
-    let settings_page = settings::build_settings_page(move || {
-        stack_ref.set_visible_child_name("workspace");
-    });
+    let workspace_ref = workspace.clone();
+    let settings_page = settings::build_settings_page(
+        move || {
+            stack_ref.set_visible_child_name("workspace");
+        },
+        move |new_settings| {
+            *app_settings.borrow_mut() = new_settings.clone();
+            workspace_ref.apply_settings(new_settings);
+        },
+    );
     stack.add_named(&settings_page, Some("settings"));
 
     // Settings button toggles to settings view
@@ -106,7 +117,7 @@ fn build_window(app: &Application, width: u32, height: u32) {
     window.present();
 }
 
-fn shell_container(child: &impl IsA<gtk::Widget>) -> GtkBox {
+fn shell_container(child: &impl IsA<gtk::Widget>, logr_panel_open: bool) -> GtkBox {
     let container = GtkBox::new(Orientation::Vertical, 0);
     container.add_css_class("obsidian-shell");
     container.set_margin_start(MARGIN_HORIZONTAL);
@@ -135,10 +146,13 @@ fn shell_container(child: &impl IsA<gtk::Widget>) -> GtkBox {
     right_pane.append(&logr::build_logr_pane());
 
     revealer.set_child(Some(&right_pane));
-    revealer.set_reveal_child(true);
+    revealer.set_reveal_child(logr_panel_open);
 
     let handle = GtkBox::new(Orientation::Vertical, 0);
     handle.add_css_class("obsidian-handle");
+    if !logr_panel_open {
+        handle.add_css_class("collapsed");
+    }
     handle.set_vexpand(true);
     handle.set_valign(Align::Fill);
 

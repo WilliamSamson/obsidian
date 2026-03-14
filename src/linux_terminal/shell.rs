@@ -18,18 +18,25 @@ impl ShellRuntime {
     }
 }
 
-pub(super) fn spawn_shell(terminal: &Terminal, working_directory: Option<&str>) -> ShellRuntime {
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+pub(super) fn spawn_shell(terminal: &Terminal, working_directory: Option<&str>, shell_override: &str) -> ShellRuntime {
+    let shell = if shell_override.is_empty() {
+        std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string())
+    } else {
+        shell_override.to_string()
+    };
     let status_path = status_path();
     let args = shell_args(&shell);
     let env = shell_env(&status_path);
+
+    let home = std::env::var("HOME").ok();
+    let cwd = working_directory.or(home.as_deref());
 
     let args_refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let env_refs: Vec<&str> = env.iter().map(String::as_str).collect();
 
     terminal.spawn_async(
         PtyFlags::DEFAULT,
-        working_directory,
+        cwd,
         &args_refs,
         &env_refs,
         glib::SpawnFlags::DEFAULT,

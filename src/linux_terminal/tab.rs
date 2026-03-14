@@ -1,9 +1,12 @@
 use gtk::{prelude::*, Box as GtkBox, Label, Orientation, Separator};
 
+use std::{cell::RefCell, rc::Rc};
+
 use super::{
     persist::TabSnapshot,
     profile::{profile, ProfileId},
     session::SessionView,
+    settings::Settings,
 };
 
 pub(super) struct TabView {
@@ -13,15 +16,17 @@ pub(super) struct TabView {
     right: Option<SessionView>,
     split_separator: Option<Separator>,
     profile_id: ProfileId,
+    settings: Rc<RefCell<Settings>>,
 }
 
 impl TabView {
-    pub(super) fn new(snapshot: TabSnapshot) -> Self {
+    pub(super) fn new(snapshot: TabSnapshot, settings: Rc<RefCell<Settings>>) -> Self {
         let root = GtkBox::new(Orientation::Horizontal, 12);
         root.set_hexpand(true);
         root.set_vexpand(true);
 
-        let left = SessionView::new(snapshot.profile, snapshot.left_cwd.as_deref());
+        let settings_ref = settings.borrow();
+        let left = SessionView::new(snapshot.profile, snapshot.left_cwd.as_deref(), &settings_ref);
         root.append(left.root());
 
         let mut right = None;
@@ -30,11 +35,12 @@ impl TabView {
             let separator = Separator::new(Orientation::Vertical);
             separator.add_css_class("obsidian-v-separator");
             root.append(&separator);
-            let right_session = SessionView::new(snapshot.profile, Some(cwd));
+            let right_session = SessionView::new(snapshot.profile, Some(cwd), &settings_ref);
             root.append(right_session.root());
             split_separator = Some(separator);
             right = Some(right_session);
         }
+        drop(settings_ref);
 
         let title_label = Label::new(Some(&snapshot.title));
         title_label.add_css_class("obsidian-tab-label");
@@ -46,6 +52,7 @@ impl TabView {
             right,
             split_separator,
             profile_id: snapshot.profile,
+            settings,
         }
     }
 
@@ -99,10 +106,18 @@ impl TabView {
         self.root.append(&separator);
 
         let cwd = self.left.current_cwd();
-        let right = SessionView::new(self.profile_id, cwd.as_deref());
+        let settings_ref = self.settings.borrow();
+        let right = SessionView::new(self.profile_id, cwd.as_deref(), &settings_ref);
         self.root.append(right.root());
         self.split_separator = Some(separator);
         self.right = Some(right);
+    }
+
+    pub(super) fn apply_settings(&self, settings: &Settings) {
+        self.left.apply_settings(settings, self.profile_id);
+        if let Some(right) = &self.right {
+            right.apply_settings(settings, self.profile_id);
+        }
     }
 }
 

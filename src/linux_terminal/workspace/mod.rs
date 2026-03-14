@@ -11,6 +11,7 @@ use gtk::{
 use super::{
     persist::{self, TabSnapshot, WorkspaceSnapshot},
     profile::{next_profile, ProfileId},
+    settings::Settings,
     tab::TabView,
 };
 
@@ -18,11 +19,13 @@ pub(super) struct WorkspaceView {
     root: GtkBox,
     notebook: Notebook,
     tab_container: GtkBox,
+    tab_scroller: ScrolledWindow,
     tabs: Rc<RefCell<Vec<TabView>>>,
+    settings: Rc<RefCell<Settings>>,
 }
 
 impl WorkspaceView {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(settings: Rc<RefCell<Settings>>) -> Self {
         let root = GtkBox::new(Orientation::Vertical, 0);
         root.set_vexpand(true);
         root.set_focusable(true);
@@ -36,7 +39,7 @@ impl WorkspaceView {
         add_button.set_halign(Align::End);
         add_button.set_valign(Align::Center);
 
-        let tab_bar_row = tab_bar_row(&tab_container, &add_button);
+        let (tab_bar_row, tab_scroller) = tab_bar_row(&tab_container, &add_button);
         let notebook = notebook();
         let (split_tab, close_tab, profile_tab, actions_box) = actions_box();
         notebook.set_action_widget(&actions_box, PackType::End);
@@ -49,7 +52,9 @@ impl WorkspaceView {
             root,
             notebook,
             tab_container,
+            tab_scroller,
             tabs,
+            settings,
         };
 
         workspace.restore();
@@ -61,6 +66,13 @@ impl WorkspaceView {
 
     pub(super) fn root(&self) -> &GtkBox {
         &self.root
+    }
+
+    pub(super) fn apply_settings(&self, settings: &Settings) {
+        *self.settings.borrow_mut() = settings.clone();
+        for tab in self.tabs.borrow().iter() {
+            tab.apply_settings(settings);
+        }
     }
 
     pub(super) fn save(&self) {
@@ -85,8 +97,10 @@ impl WorkspaceView {
         let notebook = self.notebook.clone();
         let tabs = self.tabs.clone();
         let tab_container = self.tab_container.clone();
+        let tab_scroller = self.tab_scroller.clone();
+        let settings = self.settings.clone();
         new_tab.connect_clicked(move |_| {
-            create_new_tab(&tabs, &notebook, &tab_container);
+            create_new_tab(&tabs, &notebook, &tab_container, &tab_scroller, &settings);
         });
 
         let notebook = self.notebook.clone();
@@ -116,17 +130,24 @@ impl WorkspaceView {
             tab_strip::rebuild_tab_strip(&tab_container, &notebook, &tabs);
         });
 
-        // On tab switch: lightweight CSS update instead of full rebuild
+        // Rebuild on tab switch so the active indicator and control state always match the page.
+        let tabs = self.tabs.clone();
         let tab_container = self.tab_container.clone();
-        self.notebook.connect_switch_page(move |notebook, _, _| {
-            tab_strip::update_active_tab(&tab_container, notebook);
+        let tab_scroller = self.tab_scroller.clone();
+        self.notebook.connect_switch_page(move |notebook, _, page_num| {
+            let active = page_num as usize;
+            tab_strip::rebuild_tab_strip_at(&tab_container, notebook, &tabs, active);
+            tab_strip::reveal_active_tab_at(&tab_container, &tab_scroller, active);
         });
 
         // On tab removal: full rebuild needed since widget count changed
         let tabs = self.tabs.clone();
         let tab_container = self.tab_container.clone();
+        let tab_scroller = self.tab_scroller.clone();
         self.notebook.connect_page_removed(move |notebook, _, _| {
             tab_strip::rebuild_tab_strip(&tab_container, notebook, &tabs);
+            tab_strip::update_active_tab(&tab_container, notebook);
+            tab_strip::reveal_active_tab(&tab_container, &tab_scroller, notebook);
         });
     }
 
@@ -137,6 +158,8 @@ impl WorkspaceView {
         let notebook = self.notebook.clone();
         let tabs = self.tabs.clone();
         let tab_container = self.tab_container.clone();
+        let tab_scroller = self.tab_scroller.clone();
+        let settings = self.settings.clone();
 
         controller.connect_key_pressed(move |_, key, _, modifiers| {
             let ctrl = modifiers.contains(gdk::ModifierType::CONTROL_MASK);
@@ -149,7 +172,7 @@ impl WorkspaceView {
             match key {
                 // Ctrl+T: New tab
                 gdk::Key::t if !shift => {
-                    create_new_tab(&tabs, &notebook, &tab_container);
+                    create_new_tab(&tabs, &notebook, &tab_container, &tab_scroller, &settings);
                     gtk::glib::Propagation::Stop
                 }
                 // Ctrl+W: Close current tab
@@ -216,7 +239,7 @@ impl WorkspaceView {
     }
 
     fn append_tab(&self, snapshot: TabSnapshot) {
-        append_tab(&self.tabs, &self.notebook, snapshot);
+        append_tab(&self.tabs, &self.notebook, snapshot, &self.settings);
     }
 
     fn rebuild_tab_strip(&self) {
@@ -228,20 +251,24 @@ fn create_new_tab(
     tabs: &Rc<RefCell<Vec<TabView>>>,
     notebook: &Notebook,
     tab_container: &GtkBox,
+    tab_scroller: &ScrolledWindow,
+    settings: &Rc<RefCell<Settings>>,
 ) {
     let next_index = tabs.borrow().len() + 1;
     let snapshot = TabSnapshot {
         title: format!("tab {next_index}"),
         profile: ProfileId::Default,
-        left_cwd: default_cwd(),
+        left_cwd: None,
         right_cwd: None,
     };
-    append_tab(tabs, notebook, snapshot);
+    append_tab(tabs, notebook, snapshot, settings);
     notebook.set_current_page(Some((tabs.borrow().len().saturating_sub(1)) as u32));
     tab_strip::rebuild_tab_strip(tab_container, notebook, tabs);
+    tab_strip::update_active_tab(tab_container, notebook);
+    tab_strip::reveal_active_tab(tab_container, tab_scroller, notebook);
 }
 
-fn tab_bar_row(tab_container: &GtkBox, add_button: &Button) -> GtkBox {
+fn tab_bar_row(tab_container: &GtkBox, add_button: &Button) -> (GtkBox, ScrolledWindow) {
     let bar_scroll = ScrolledWindow::builder()
         .hscrollbar_policy(PolicyType::Automatic)
         .vscrollbar_policy(PolicyType::Never)
@@ -257,7 +284,7 @@ fn tab_bar_row(tab_container: &GtkBox, add_button: &Button) -> GtkBox {
     row.set_valign(Align::Center);
     row.append(&bar_scroll);
     row.append(add_button);
-    row
+    (row, bar_scroll)
 }
 
 fn notebook() -> Notebook {
@@ -282,8 +309,13 @@ fn actions_box() -> (Button, Button, Button, GtkBox) {
     (split_tab, close_tab, profile_tab, actions_box)
 }
 
-fn append_tab(tabs: &Rc<RefCell<Vec<TabView>>>, notebook: &Notebook, snapshot: TabSnapshot) {
-    let tab = TabView::new(snapshot);
+fn append_tab(
+    tabs: &Rc<RefCell<Vec<TabView>>>,
+    notebook: &Notebook,
+    snapshot: TabSnapshot,
+    settings: &Rc<RefCell<Settings>>,
+) {
+    let tab = TabView::new(snapshot, settings.clone());
     notebook.append_page(tab.root(), Some(tab.title_label()));
     tabs.borrow_mut().push(tab);
 }
@@ -305,12 +337,8 @@ fn default_snapshot() -> WorkspaceSnapshot {
         tabs: vec![TabSnapshot {
             title: "tab 1".to_string(),
             profile: ProfileId::Default,
-            left_cwd: default_cwd(),
+            left_cwd: None,
             right_cwd: None,
         }],
     }
-}
-
-fn default_cwd() -> Option<String> {
-    std::env::current_dir().ok().map(|cwd| cwd.display().to_string())
 }
