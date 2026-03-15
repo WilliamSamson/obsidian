@@ -6,7 +6,7 @@ use gtk::{
 };
 use webkit6::WebContext;
 
-use super::{logr, settings::Settings, view, web};
+use super::{git, logr, settings::Settings, view, web};
 
 const PANE_WIDTH: i32 = 420;
 
@@ -16,6 +16,7 @@ pub(super) enum SidePaneKind {
     Logr,
     Web,
     View,
+    Git,
 }
 
 #[derive(Clone)]
@@ -25,6 +26,7 @@ pub(super) struct SidePanes {
     active_pane: Rc<Cell<SidePaneKind>>,
     web_host: web::WebPaneHost,
     view_host: view::ViewPaneHost,
+    git_host: git::GitPaneHost,
 }
 
 #[derive(Clone)]
@@ -33,6 +35,7 @@ struct PaneButtons {
     logr: Button,
     web: Button,
     view: Button,
+    git: Button,
 }
 
 #[derive(Clone)]
@@ -40,6 +43,7 @@ struct PaneRevealers {
     logr: Revealer,
     web: Revealer,
     view: Revealer,
+    git: Revealer,
 }
 
 pub(super) fn build_side_panes(
@@ -61,26 +65,32 @@ pub(super) fn build_side_panes(
     let logr_button = handle_button("view-list-symbolic", "Open logr");
     let web_button = handle_button("applications-internet-symbolic", "Open web");
     let view_button = handle_button("image-x-generic-symbolic", "Open viewer");
+    let git_button = handle_button("emblem-shared-symbolic", "Open git");
     handle.append(&logr_button);
     handle.append(&web_button);
     handle.append(&view_button);
+    handle.append(&git_button);
 
     let logr_revealer = build_revealer(&wrap_pane(&logr::build_logr_pane()));
     let web_host = web::WebPaneHost::new(settings);
     let web_revealer = build_revealer(&wrap_pane(web_host.widget()));
-    let view_host = view::ViewPaneHost::new(cwd_provider, WebContext::new());
+    let view_host = view::ViewPaneHost::new(cwd_provider.clone(), WebContext::new());
     let view_revealer = build_revealer(&wrap_pane(view_host.widget()));
+    let git_host = git::GitPaneHost::new(cwd_provider);
+    let git_revealer = build_revealer(&wrap_pane(git_host.widget()));
 
     let buttons = PaneButtons {
         handle: handle.clone(),
         logr: logr_button.clone(),
         web: web_button.clone(),
         view: view_button.clone(),
+        git: git_button.clone(),
     };
     let revealers = PaneRevealers {
         logr: logr_revealer.clone(),
         web: web_revealer.clone(),
         view: view_revealer.clone(),
+        git: git_revealer.clone(),
     };
 
     let side_panes = SidePanes {
@@ -89,6 +99,7 @@ pub(super) fn build_side_panes(
         active_pane,
         web_host,
         view_host,
+        git_host,
     };
 
     {
@@ -104,6 +115,11 @@ pub(super) fn build_side_panes(
     {
         let side_panes = side_panes.clone();
         view_button.connect_clicked(move |_| side_panes.toggle(SidePaneKind::View));
+    }
+
+    {
+        let side_panes = side_panes.clone();
+        git_button.connect_clicked(move |_| side_panes.toggle(SidePaneKind::Git));
     }
 
     side_panes.sync();
@@ -125,6 +141,10 @@ impl SidePanes {
 
     pub(super) fn view_revealer(&self) -> &Revealer {
         &self.revealers.view
+    }
+
+    pub(super) fn git_revealer(&self) -> &Revealer {
+        &self.revealers.git
     }
 
     pub(super) fn apply_settings(&self, settings: &Settings) {
@@ -160,6 +180,7 @@ impl SidePanes {
             &self.buttons,
             &self.web_host,
             &self.view_host,
+            &self.git_host,
         );
     }
 }
@@ -218,10 +239,12 @@ fn sync_side_panes(
     buttons: &PaneButtons,
     web_host: &web::WebPaneHost,
     view_host: &view::ViewPaneHost,
+    git_host: &git::GitPaneHost,
 ) {
     let show_logr = active == SidePaneKind::Logr;
     let show_web = active == SidePaneKind::Web;
     let show_view = active == SidePaneKind::View;
+    let show_git = active == SidePaneKind::Git;
 
     if show_web {
         web_host.ensure_loaded();
@@ -229,17 +252,23 @@ fn sync_side_panes(
     if show_view {
         view_host.ensure_loaded();
     }
+    if show_git {
+        git_host.ensure_loaded();
+    }
 
     revealers.logr.set_visible(show_logr);
     revealers.web.set_visible(show_web);
     revealers.view.set_visible(show_view);
+    revealers.git.set_visible(show_git);
     revealers.logr.set_reveal_child(show_logr);
     revealers.web.set_reveal_child(show_web);
     revealers.view.set_reveal_child(show_view);
+    revealers.git.set_reveal_child(show_git);
 
     set_active_button(&buttons.logr, show_logr);
     set_active_button(&buttons.web, show_web);
     set_active_button(&buttons.view, show_view);
+    set_active_button(&buttons.git, show_git);
 
     if active == SidePaneKind::None {
         buttons.handle.add_css_class("collapsed");

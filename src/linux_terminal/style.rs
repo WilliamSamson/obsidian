@@ -2152,6 +2152,609 @@ pub(super) fn install_css(app_font_size: u32) {
         button.obsidian-settings-save:hover {{
             background: rgba(255, 77, 77, 0.10);
         }}
+
+        /* ─── Git Pane ─────────────────────────────────────────── */
+
+        .obsidian-git-root {{
+            padding: 8px;
+        }}
+
+        .obsidian-git-header {{
+            padding: 4px 0 8px 0;
+        }}
+
+        .obsidian-git-title {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_13};
+            font-weight: 700;
+            color: {text_primary};
+        }}
+
+        .obsidian-git-branch-label {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_11};
+            color: {accent};
+            padding: 0 8px;
+        }}
+
+        .obsidian-git-ahead-behind {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            color: rgba(255, 255, 255, 0.5);
+        }}
+
+        .obsidian-git-remote-bar {{
+            padding: 4px 0;
+            border-bottom: 1px solid {border};
+            margin-bottom: 4px;
+        }}
+
+        .obsidian-git-remote-button {{
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            padding: 2px 10px;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            box-shadow: none;
+            min-height: 0;
+        }}
+
+        .obsidian-git-remote-button:hover {{
+            color: {text_primary};
+            border-color: rgba(255, 255, 255, 0.15);
+        }}
+
+        .obsidian-git-icon-btn {{
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 4px;
+            padding: 2px 6px;
+            box-shadow: none;
+            min-height: 0;
+            min-width: 0;
+        }}
+
+        .obsidian-git-icon-btn:hover {{
+            color: {text_primary};
+            background: rgba(255, 255, 255, 0.06);
+        }}
+
+        .obsidian-git-nav {{
+            padding: 4px 0;
+            border-bottom: 1px solid {border};
+            margin-bottom: 4px;
+        }}
+
+        .obsidian-git-nav-button {{
+            background: transparent;
+            color: rgba(255, 255, 255, 0.4);
+            border: none;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            font-weight: 600;
+            box-shadow: none;
+            min-height: 0;
+        }}
+
+        .obsidian-git-nav-button:hover {{
+            color: rgba(255, 255, 255, 0.7);
+        }}
+
+        .obsidian-git-nav-button.active {{
+            color: {accent};
+            background: rgba(255, 77, 77, 0.08);
+        }}
+
+        .obsidian-git-status {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: rgba(255, 255, 255, 0.35);
+            padding: 4px 0;
+            border-top: 1px solid {border};
+            margin-top: 4px;
+        }}
+
+        /* ─── Staging ──────────────────────────────────────────── */
+
+        .obsidian-git-staging-root {{
+            padding: 0;
+        }}
+
+        .obsidian-git-commit-box {{
+            padding: 0 0 8px 0;
+            border-bottom: 1px solid {border};
+            margin-bottom: 4px;
+        }}
+
+        .obsidian-git-commit-entry {{
+            background: rgba(255, 255, 255, 0.03);
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+        }}
+
+        .obsidian-git-commit-actions {{
+            padding: 4px 0 0 0;
+        }}
+
+        .obsidian-git-commit-button {{
+            background: {accent};
+            color: #0b0b0b;
+            border: none;
+            border-radius: 4px;
+            padding: 3px 14px;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            box-shadow: none;
+            min-height: 0;
+        }}
+
+        .obsidian-git-commit-button:hover {{
+            background: #ff6666;
+        }}
+
+        .obsidian-git-commit-button:disabled {{
+            background: rgba(255, 77, 77, 0.3);
+            color: rgba(11, 11, 11, 0.5);
+        }}
+
+        .obsidian-git-action-btn {{
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            box-shadow: none;
+            min-height: 0;
+        }}
+
+        .obsidian-git-action-btn:hover {{
+            color: {text_primary};
+            border-color: rgba(255, 255, 255, 0.12);
+        }}
+
+        .obsidian-git-file-section {{
+            margin-top: 2px;
+        }}
+
+        .obsidian-git-file-section-header {{
+            padding: 4px 2px;
+        }}
+
+        .obsidian-git-section-arrow {{
+            font-size: {font_9};
+            color: rgba(255, 255, 255, 0.3);
+            min-width: 12px;
+        }}
+
+        .obsidian-git-section-title {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+        }}
+
+        .obsidian-git-section-count {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: rgba(255, 255, 255, 0.3);
+        }}
+
+        .obsidian-git-file-list {{
+            background: transparent;
+        }}
+
+        .obsidian-git-file-row-container {{
+            margin: 0;
+        }}
+
+        .obsidian-git-file-row {{
+            padding: 3px 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }}
+
+        .obsidian-git-file-row:hover {{
+            background: rgba(255, 255, 255, 0.03);
+        }}
+
+        .obsidian-git-file-status {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            font-weight: 700;
+            min-width: 16px;
+            padding: 0 2px;
+        }}
+
+        .obsidian-git-file-status.status-added {{
+            color: #388C50;
+        }}
+
+        .obsidian-git-file-status.status-modified {{
+            color: #C89A1E;
+        }}
+
+        .obsidian-git-file-status.status-deleted {{
+            color: {accent};
+        }}
+
+        .obsidian-git-file-status.status-other {{
+            color: rgba(255, 255, 255, 0.4);
+        }}
+
+        .obsidian-git-file-name {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: {text_primary};
+        }}
+
+        .obsidian-git-file-action {{
+            background: transparent;
+            color: rgba(255, 255, 255, 0.4);
+            border: none;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 8px;
+            box-shadow: none;
+            min-height: 0;
+            min-width: 0;
+        }}
+
+        .obsidian-git-file-action:hover {{
+            color: {text_primary};
+            background: rgba(255, 255, 255, 0.06);
+        }}
+
+        .obsidian-git-file-discard {{
+            background: transparent;
+            color: rgba(255, 77, 77, 0.5);
+            border: none;
+            border-radius: 3px;
+            padding: 1px 4px;
+            box-shadow: none;
+            min-height: 0;
+            min-width: 0;
+            -gtk-icon-size: 12px;
+        }}
+
+        .obsidian-git-file-discard:hover {{
+            color: {accent};
+            background: rgba(255, 77, 77, 0.1);
+        }}
+
+        /* ─── Diff ─────────────────────────────────────────────── */
+
+        .obsidian-git-diff-root {{
+            padding: 4px 0 4px 16px;
+        }}
+
+        .obsidian-git-hunk-header {{
+            padding: 2px 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }}
+
+        .obsidian-git-hunk-header-text {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: rgba(255, 255, 255, 0.35);
+        }}
+
+        .obsidian-git-diff-line {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            padding: 0 4px;
+        }}
+
+        .obsidian-git-line-added {{
+            color: #388C50;
+            background: rgba(56, 140, 80, 0.08);
+        }}
+
+        .obsidian-git-line-removed {{
+            color: {accent};
+            background: rgba(255, 77, 77, 0.08);
+        }}
+
+        .obsidian-git-line-context {{
+            color: rgba(255, 255, 255, 0.35);
+        }}
+
+        .obsidian-git-line-header {{
+            color: rgba(255, 255, 255, 0.25);
+        }}
+
+        .obsidian-git-diff-stat {{
+            padding: 4px 0;
+        }}
+
+        .obsidian-git-diff-stat-line {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: rgba(255, 255, 255, 0.45);
+        }}
+
+        .obsidian-git-stage-hunk-btn {{
+            background: transparent;
+            color: rgba(255, 255, 255, 0.4);
+            border: none;
+            padding: 0 4px;
+            font-size: 8px;
+            box-shadow: none;
+            min-height: 0;
+            min-width: 0;
+        }}
+
+        /* ─── Graph / Log ──────────────────────────────────────── */
+
+        .obsidian-git-graph-root {{
+            padding: 0;
+        }}
+
+        .obsidian-git-graph-list {{
+            background: transparent;
+        }}
+
+        .obsidian-git-commit-container {{
+            margin: 0;
+        }}
+
+        .obsidian-git-commit-row {{
+            padding: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }}
+
+        .obsidian-git-commit-row:hover {{
+            background: rgba(255, 255, 255, 0.03);
+        }}
+
+        .obsidian-git-graph-art {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: {accent};
+            min-width: 20px;
+        }}
+
+        .obsidian-git-commit-hash {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: #C89A1E;
+            min-width: 50px;
+        }}
+
+        .obsidian-git-commit-msg {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: {text_primary};
+        }}
+
+        .obsidian-git-commit-author {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.35);
+        }}
+
+        .obsidian-git-commit-date {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.25);
+        }}
+
+        .obsidian-git-ref-badge {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 3px;
+            padding: 0 4px;
+        }}
+
+        .obsidian-git-ref-badge.ref-head {{
+            color: {accent};
+            background: rgba(255, 77, 77, 0.1);
+        }}
+
+        .obsidian-git-ref-badge.ref-tag {{
+            color: #C89A1E;
+            background: rgba(200, 154, 30, 0.1);
+        }}
+
+        .obsidian-git-commit-detail {{
+            padding: 4px 0 4px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }}
+
+        .obsidian-git-load-more {{
+            background: transparent;
+            color: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            padding: 4px;
+            margin: 4px;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            box-shadow: none;
+        }}
+
+        .obsidian-git-load-more:hover {{
+            color: {text_primary};
+        }}
+
+        /* ─── Branches ─────────────────────────────────────────── */
+
+        .obsidian-git-branch-root {{
+            padding: 0;
+        }}
+
+        .obsidian-git-branch-create {{
+            padding: 4px 0;
+            border-bottom: 1px solid {border};
+            margin-bottom: 4px;
+        }}
+
+        .obsidian-git-branch-entry {{
+            background: rgba(255, 255, 255, 0.03);
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            padding: 3px 8px;
+        }}
+
+        .obsidian-git-branch-list {{
+            background: transparent;
+        }}
+
+        .obsidian-git-branch-row {{
+            padding: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }}
+
+        .obsidian-git-branch-row:hover {{
+            background: rgba(255, 255, 255, 0.03);
+        }}
+
+        .obsidian-git-branch-current {{
+            background: rgba(255, 77, 77, 0.04);
+        }}
+
+        .obsidian-git-branch-indicator {{
+            font-size: {font_9};
+            color: {accent};
+            min-width: 12px;
+        }}
+
+        .obsidian-git-branch-name {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            color: {text_primary};
+        }}
+
+        .obsidian-git-branch-commit {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.3);
+        }}
+
+        .obsidian-git-branch-remote .obsidian-git-branch-name {{
+            color: rgba(255, 255, 255, 0.45);
+        }}
+
+        /* ─── Stash ────────────────────────────────────────────── */
+
+        .obsidian-git-stash-root {{
+            padding: 0;
+        }}
+
+        .obsidian-git-stash-push {{
+            padding: 4px 0;
+            border-bottom: 1px solid {border};
+            margin-bottom: 4px;
+        }}
+
+        .obsidian-git-stash-entry {{
+            background: rgba(255, 255, 255, 0.03);
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            padding: 3px 8px;
+        }}
+
+        .obsidian-git-stash-list {{
+            background: transparent;
+        }}
+
+        .obsidian-git-stash-row-container {{
+            margin: 0;
+        }}
+
+        .obsidian-git-stash-row {{
+            padding: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }}
+
+        .obsidian-git-stash-row:hover {{
+            background: rgba(255, 255, 255, 0.03);
+        }}
+
+        .obsidian-git-stash-index {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: #C89A1E;
+            min-width: 24px;
+        }}
+
+        .obsidian-git-stash-msg {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: {text_primary};
+        }}
+
+        /* ─── Search ───────────────────────────────────────────── */
+
+        .obsidian-git-search-root {{
+            padding: 0;
+        }}
+
+        .obsidian-git-search-bar {{
+            padding: 4px 0;
+            border-bottom: 1px solid {border};
+            margin-bottom: 4px;
+        }}
+
+        .obsidian-git-search-mode {{
+            font-size: {font_9};
+        }}
+
+        .obsidian-git-search-entry {{
+            background: rgba(255, 255, 255, 0.03);
+            color: {text_primary};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            padding: 3px 8px;
+        }}
+
+        .obsidian-git-search-count {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_9};
+            color: rgba(255, 255, 255, 0.35);
+            padding: 2px 0;
+        }}
+
+        .obsidian-git-search-results {{
+            background: transparent;
+        }}
+
+        /* ─── Shared ───────────────────────────────────────────── */
+
+        .obsidian-git-empty {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            color: rgba(255, 255, 255, 0.25);
+            padding: 16px 8px;
+        }}
+
+        .obsidian-git-error {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            color: {accent};
+            padding: 8px;
+        }}
         ",
         window_bg = css_color(theme::BG_PRIMARY),
         window_edge = css_color(theme::WINDOW_EDGE),

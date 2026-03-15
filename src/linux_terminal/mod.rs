@@ -1,3 +1,4 @@
+mod git;
 mod header;
 mod input;
 mod logr;
@@ -306,6 +307,7 @@ fn shell_container(
     view_row.append(side_panes.logr_revealer());
     view_row.append(side_panes.web_revealer());
     view_row.append(side_panes.view_revealer());
+    view_row.append(side_panes.git_revealer());
     container.append(&view_row);
 
     ShellContainer {
