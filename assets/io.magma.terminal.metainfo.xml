@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.magma.terminal</id>
+
+  <name>Magma</name>
+  <summary>GPU-accelerated terminal emulator</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+
+  <developer id="io.magma">
+    <name>Magma Terminal</name>
+  </developer>
+
+  <description>
+    <p>
+      Magma is a desktop terminal workspace written in Rust. It combines a
+      custom shell with a log inspection interface for structured JSON log
+      streams, built on GTK4, VTE4, and WebKitGTK.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>GPU-accelerated rendering</li>
+      <li>Built-in structured log viewer</li>
+      <li>Light and dark theme support</li>
+      <li>First-run setup wizard</li>
+      <li>Minimal, clean interface</li>
+    </ul>
+  </description>
+
+  <url type="homepage">https://github.com/WilliamSamson/magma</url>
+  <url type="bugtracker">https://github.com/WilliamSamson/magma/issues</url>
+  <url type="vcs-browser">https://github.com/WilliamSamson/magma</url>
+
+  <launchable type="desktop-id">io.magma.terminal.desktop</launchable>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#ffffff</color>
+    <color type="primary" scheme_preference="dark">#1a1a1a</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Terminal workspace with the log viewer panel</caption>
+      <image>https://raw.githubusercontent.com/WilliamSamson/magma/master/assets/screenshots/magma.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>File browser and preview panel</caption>
+      <image>https://raw.githubusercontent.com/WilliamSamson/magma/master/assets/screenshots/magma2.png</image>
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.1.1" date="2026-04-11">
+      <description>
+        <p>Theme-aware header and dropdown styling, settings navigation fix.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-04-11">
+      <description>
+        <p>First stable release.</p>
+      </description>
+    </release>
+  </releases>
+
+  <categories>
+    <category>System</category>
+    <category>TerminalEmulator</category>
+  </categories>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+</component>
