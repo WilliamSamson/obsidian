@@ -1,7 +1,7 @@
 {
   "app-id": "io.magma.terminal",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "47",
+  "runtime-version": "48",
   "sdk": "org.gnome.Sdk",
   "sdk-extensions": [
     "org.freedesktop.Sdk.Extension.rust-stable"
@@ -13,9 +13,8 @@
     "--socket=wayland",
     "--device=dri",
     "--share=network",
-    "--socket=session-bus",
-    "--talk-name=org.freedesktop.Flatpak",
-    "--filesystem=home"
+    "--talk-name=org.freedesktop.notifications",
+    "--filesystem=host"
   ],
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin",
@@ -48,5 +47,10 @@
         }
       ]
     }
-  ]
+  ],
+  "x-flathub": {
+    "linter-exceptions": {
+      "finish-args-host-filesystem-access": "Terminal emulator requires host filesystem access to function as a shell"
+    }
+  }
 }
