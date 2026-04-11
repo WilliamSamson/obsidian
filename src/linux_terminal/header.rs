@@ -4,7 +4,20 @@ use gtk::{glib, prelude::*, Button, HeaderBar, Image, Label, MenuButton};
 
 use super::{APP_TITLE, HEADER_ICON_PATH};
 
-pub(super) fn build_header() -> (HeaderBar, Button, MenuButton) {
+type HeaderAction = Rc<dyn Fn()>;
+
+#[derive(Clone)]
+pub(super) struct AppHeader {
+    header: HeaderBar,
+    logo: Image,
+    title: Label,
+    settings_button: Button,
+    inspector_button: MenuButton,
+    close_button: Button,
+    close_action: Rc<RefCell<Option<HeaderAction>>>,
+}
+
+pub(super) fn build_header() -> AppHeader {
     let header = HeaderBar::new();
     header.add_css_class("magma-header");
     header.set_show_title_buttons(true);
@@ -19,6 +32,13 @@ pub(super) fn build_header() -> (HeaderBar, Button, MenuButton) {
     title.add_css_class("magma-title");
     header.set_title_widget(Some(&title));
 
+    let close_button = Button::builder()
+        .icon_name("window-close-symbolic")
+        .css_classes(["magma-header-close"])
+        .tooltip_text("Close")
+        .visible(false)
+        .build();
+
     let settings_button = Button::builder()
         .icon_name("emblem-system-symbolic")
         .css_classes(["magma-header-settings"])
@@ -30,8 +50,17 @@ pub(super) fn build_header() -> (HeaderBar, Button, MenuButton) {
     inspector_button.set_icon_name("dialog-information-symbolic");
     inspector_button.set_tooltip_text(Some("Terminal inspector"));
 
+    header.pack_start(&close_button);
     header.pack_end(&settings_button);
     header.pack_end(&inspector_button);
+
+    let close_action: Rc<RefCell<Option<HeaderAction>>> = Rc::new(RefCell::new(None));
+    let close_slot = close_action.clone();
+    close_button.connect_clicked(move |_| {
+        if let Some(action) = close_slot.borrow().as_ref() {
+            action();
+        }
+    });
 
     // Apply tooltips to window control buttons after GTK realizes the widget tree.
     let header_ref = header.clone();
@@ -39,7 +68,57 @@ pub(super) fn build_header() -> (HeaderBar, Button, MenuButton) {
         apply_window_button_tooltips(&header_ref);
     });
 
-    (header, settings_button, inspector_button)
+    AppHeader {
+        header,
+        logo,
+        title,
+        settings_button,
+        inspector_button,
+        close_button,
+        close_action,
+    }
+}
+
+impl AppHeader {
+    pub(super) fn widget(&self) -> &HeaderBar {
+        &self.header
+    }
+
+    pub(super) fn settings_button(&self) -> &Button {
+        &self.settings_button
+    }
+
+    pub(super) fn inspector_button(&self) -> &MenuButton {
+        &self.inspector_button
+    }
+
+    pub(super) fn show_workspace_mode(&self, show_settings_button: bool, show_inspector: bool) {
+        self.logo.set_visible(true);
+        self.close_button.set_visible(false);
+        self.settings_button.set_visible(show_settings_button);
+        self.inspector_button.set_visible(show_inspector);
+        self.title.set_text(APP_TITLE);
+        self.title.remove_css_class("magma-settings-title");
+        self.header.set_show_title_buttons(true);
+        *self.close_action.borrow_mut() = None;
+    }
+
+    pub(super) fn show_settings_mode(&self) {
+        self.logo.set_visible(false);
+        self.close_button.set_visible(true);
+        self.settings_button.set_visible(false);
+        self.inspector_button.set_visible(false);
+        self.title.add_css_class("magma-settings-title");
+        self.header.set_show_title_buttons(false);
+    }
+
+    pub(super) fn set_settings_title(&self, title: &str) {
+        self.title.set_text(title);
+    }
+
+    pub(super) fn set_settings_close_action(&self, action: HeaderAction) {
+        *self.close_action.borrow_mut() = Some(action);
+    }
 }
 
 /// Wire the inspector button to the active terminal provider.

@@ -2,17 +2,45 @@ use gtk::{
     gdk, style_context_add_provider_for_display, CssProvider, STYLE_PROVIDER_PRIORITY_USER,
 };
 
-use crate::ui::theme;
+use super::{settings::Settings, theme};
 
-pub(super) fn install_css(app_font_size: u32) {
+pub(super) fn install_css(settings: &Settings) {
     let provider = CssProvider::new();
-    let ui_scale = ui_scale(app_font_size);
+    let ui_scale = ui_scale(settings.app_font_size);
+    let palette = theme::palette(settings.theme_mode);
     let css = format!(
         "
         window.magma-window {{
             background: {window_bg};
             border: 1px solid {window_edge};
             border-radius: 12px;
+        }}
+
+        /* ── Global scrollbar — thin, themed ── */
+        scrollbar {{
+            background: transparent;
+            border: none;
+        }}
+
+        scrollbar slider {{
+            background: rgba(255, 255, 255, 0.10);
+            border-radius: 999px;
+            min-width: 6px;
+            min-height: 6px;
+            border: none;
+            transition: background 140ms ease;
+        }}
+
+        scrollbar slider:hover {{
+            background: rgba(255, 255, 255, 0.20);
+        }}
+
+        scrollbar.horizontal slider {{
+            min-height: 6px;
+        }}
+
+        scrollbar.vertical slider {{
+            min-width: 6px;
         }}
 
         headerbar.magma-header {{
@@ -124,7 +152,8 @@ pub(super) fn install_css(app_font_size: u32) {
             background: #1CAD30;
         }}
 
-        button.magma-header-settings {{
+        button.magma-header-settings,
+        menubutton.magma-header-settings {{
             background: transparent;
             color: {text_primary};
             border: none;
@@ -137,7 +166,32 @@ pub(super) fn install_css(app_font_size: u32) {
             transition: opacity 140ms ease;
         }}
 
-        button.magma-header-settings:hover {{
+        menubutton.magma-header-settings > button {{
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }}
+
+        button.magma-header-settings:hover,
+        menubutton.magma-header-settings:hover {{
+            opacity: 1.0;
+        }}
+
+        button.magma-header-close {{
+            background: transparent;
+            color: {text_primary};
+            border: none;
+            border-radius: 4px;
+            min-height: 18px;
+            min-width: 18px;
+            padding: 2px;
+            box-shadow: none;
+            opacity: 0.42;
+            transition: opacity 140ms ease;
+            -gtk-icon-size: 12px;
+        }}
+
+        button.magma-header-close:hover {{
             opacity: 1.0;
         }}
 
@@ -619,7 +673,7 @@ pub(super) fn install_css(app_font_size: u32) {
         }}
 
         popover.magma-inspector-popover {{
-            background: rgba(0, 0, 0, 0.95);
+            background: {surface};
             border: 1px solid {border};
             border-radius: 12px;
         }}
@@ -646,8 +700,8 @@ pub(super) fn install_css(app_font_size: u32) {
         }}
 
         .magma-inspector-row {{
-            background: rgba(255, 255, 255, 0.018);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: transparent;
+            border: 1px solid {border};
             border-radius: 10px;
             padding: 10px;
         }}
@@ -2119,7 +2173,7 @@ pub(super) fn install_css(app_font_size: u32) {
         }}
 
         .magma-settings-header {{
-            padding: 4px 24px 14px 0;
+            padding: 2px 24px 12px 0;
             margin-bottom: 4px;
         }}
 
@@ -2128,12 +2182,13 @@ pub(super) fn install_css(app_font_size: u32) {
             color: {text_primary};
             border: none;
             border-radius: 4px;
-            min-height: 28px;
-            min-width: 28px;
-            padding: 4px;
+            min-height: 20px;
+            min-width: 20px;
+            padding: 2px;
             box-shadow: none;
             opacity: 0.4;
             transition: opacity 140ms ease;
+            -gtk-icon-size: 12px;
         }}
 
         button.magma-settings-back:hover {{
@@ -2143,16 +2198,83 @@ pub(super) fn install_css(app_font_size: u32) {
         .magma-settings-title {{
             color: {text_primary};
             font-family: \"DejaVu Sans Mono\", monospace;
-            font-size: {font_18};
+            font-size: {font_12};
             font-weight: 700;
             text-transform: lowercase;
             letter-spacing: 0.04em;
             opacity: 0.95;
-            margin-top: 4px;
+            margin-top: 0;
+        }}
+
+        .magma-settings-main {{
+            padding: 2px 10px 12px 0;
+        }}
+
+        .magma-settings-nav {{
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 2px 0 0 0;
+        }}
+
+        .magma-settings-nav-heading {{
+            color: {accent};
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-bottom: 2px;
+            opacity: 0.82;
+        }}
+
+        entry.magma-settings-nav-search {{
+            min-width: 148px;
+            max-width: 148px;
+            margin-bottom: 8px;
+            padding: 8px 10px;
+            border-radius: 30px;
+        }}
+
+        button.magma-settings-nav-button {{
+            background: transparent;
+            color: {text_primary};
+            border: none;
+            border-radius: 0;
+            padding: 6px 0;
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            font-weight: 700;
+            text-transform: lowercase;
+            box-shadow: none;
+            opacity: 0.46;
+            transition: color 140ms ease, opacity 140ms ease;
+        }}
+
+        button.magma-settings-nav-button:hover {{
+            background: transparent;
+            border-color: transparent;
+            color: rgba(255, 255, 255, 0.82);
+            opacity: 0.78;
+        }}
+
+        button.magma-settings-nav-button.active {{
+            color: {accent};
+            opacity: 1.0;
+        }}
+
+        .magma-settings-detail {{
+            background: transparent;
+            border: none;
+            border-radius: 0;
         }}
 
         .magma-settings-content {{
-            padding: 4px 18px 24px 0;
+            padding: 6px 8px 24px 8px;
+        }}
+
+        .magma-settings-empty {{
+            padding: 28px 8px;
         }}
 
         .magma-settings-section {{
@@ -2260,8 +2382,8 @@ pub(super) fn install_css(app_font_size: u32) {
         }}
 
         .magma-settings-dropdown {{
-            background: rgba(255, 255, 255, 0.015);
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: transparent;
+            border: 1px solid {border};
             border-radius: 8px;
             min-width: 140px;
         }}
@@ -2275,6 +2397,34 @@ pub(super) fn install_css(app_font_size: u32) {
             padding: 6px 10px;
             opacity: 0.8;
             transition: opacity 140ms ease;
+        }}
+
+        popover > contents {{
+            background: {surface};
+            border: 1px solid {border};
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: none;
+        }}
+
+        popover listview > row,
+        popover list > row {{
+            border-radius: 6px;
+            padding: 2px 4px;
+            transition: background 140ms ease;
+        }}
+
+        popover listview > row:hover,
+        popover listview > row:selected,
+        popover list > row:hover,
+        popover list > row:selected {{
+            background: {window_bg};
+        }}
+
+        popover label {{
+            font-family: \"DejaVu Sans Mono\", monospace;
+            font-size: {font_10};
+            color: {text_primary};
         }}
 
         switch.magma-settings-switch {{
@@ -2308,7 +2458,7 @@ pub(super) fn install_css(app_font_size: u32) {
 
         switch.magma-settings-switch:checked slider {{
             background: {accent};
-            box-shadow: 0 0 8px rgba(255, 77, 77, 0.35);
+            box-shadow: none;
         }}
 
         button.magma-settings-link {{
@@ -4029,15 +4179,15 @@ pub(super) fn install_css(app_font_size: u32) {
             color: #FFFFFF;
         }}
         ",
-        window_bg = css_color(theme::BG_PRIMARY),
-        window_edge = css_color(theme::WINDOW_EDGE),
-        titlebar_bg = css_color(theme::BG_TITLEBAR),
-        surface = css_color(theme::SURFACE_BASE),
-        border = css_color(theme::BORDER_STRONG),
-        text_primary = css_color(theme::TEXT_PRIMARY),
-        text_secondary = css_color(theme::TEXT_SECONDARY),
-        text_dim = css_color(theme::TEXT_DIM),
-        accent = css_color(theme::ACCENT),
+        window_bg = css_color(palette.bg_primary),
+        window_edge = css_color(palette.window_edge),
+        titlebar_bg = css_color(palette.bg_titlebar),
+        surface = css_color(palette.surface_base),
+        border = css_color(palette.border_strong),
+        text_primary = css_color(palette.text_primary),
+        text_secondary = css_color(palette.text_secondary),
+        text_dim = css_color(palette.text_dim),
+        accent = css_color(palette.accent),
         folder_title_size = px(9.0, ui_scale),
         folder_name_size = px(11.0, ui_scale),
         font_9 = px(9.0, ui_scale),
@@ -4045,10 +4195,14 @@ pub(super) fn install_css(app_font_size: u32) {
         font_11 = px(11.0, ui_scale),
         font_12 = px(12.0, ui_scale),
         font_13 = px(13.0, ui_scale),
-        font_18 = px(18.0, ui_scale),
         font_22 = px(22.0, ui_scale),
     );
+    let css = theme::remap_css(settings.theme_mode, css);
     provider.load_from_data(&css);
+
+    if let Some(gtk_settings) = gtk::Settings::default() {
+        gtk_settings.set_gtk_application_prefer_dark_theme(settings.theme_mode.prefers_dark_gtk());
+    }
 
     if let Some(display) = gdk::Display::default() {
         style_context_add_provider_for_display(
